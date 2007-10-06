@@ -21,17 +21,26 @@
 
 ;;; Commentary:
 
-;; TODO:
-;;   - robustness (handling sexp errors)
-;; 
 
 ;;; Code:
 
 
 (defun csense-cs-get-type-of-symbol-at-point ()  
   "Return the type of symbol at point or nil if no symbol is found."
-  (let* ((symbol (csense-cs-get-symbol-at-point))
-         (func-info (csense-cs-get-function-info))
+  (let ((symbol (csense-cs-get-symbol-at-point)))
+    (if symbol
+        (or (save-excursion
+              (skip-syntax-backward "w_")              
+              (when (eq (char-before) ?\.)
+                (backward-char)
+                (csense-cs-get-type-of-symbol-at-point)))
+
+            (csense-cs-lookup-unqalified-symbol symbol)))))
+
+
+(defun csense-cs-lookup-unqalified-symbol (symbol)
+  "Look up SYMBOL which is not qualified by an other symbol."
+  (let* ((func-info (csense-cs-get-function-info))
          (funbegin (plist-get func-info 'func-begin)))
     (if (and symbol funbegin)
         (save-excursion
