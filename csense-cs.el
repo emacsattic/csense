@@ -35,10 +35,10 @@
                 (backward-char)
                 (csense-cs-get-type-of-symbol-at-point)))
 
-            (csense-cs-lookup-unqalified-symbol symbol)))))
+            (csense-cs-lookup-unqualified-symbol symbol)))))
 
 
-(defun csense-cs-lookup-unqalified-symbol (symbol)
+(defun csense-cs-lookup-unqualified-symbol (symbol)
   "Look up SYMBOL which is not qualified by an other symbol."
   (let* ((func-info (csense-cs-get-function-info))
          (funbegin (plist-get func-info 'func-begin)))
