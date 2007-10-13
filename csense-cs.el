@@ -24,6 +24,77 @@
 
 ;;; Code:
 
+(require 'rx)
+
+
+(defconst csense-cs-symbol-regexp
+  '(symbol-start 
+    (group (syntax word)
+           (* (or (syntax word)
+                  (syntax symbol)))
+           symbol-end))
+  "Regular expression for matching a symbol.")
+
+(eval-after-load "csense-cs"
+    (defconst csense-cs-symbol-regexp-groups
+      (csense-cs-get-regexp-group-num csense-cs-symbol-regexp)
+      "Number of regexp groups."))
+
+(defconst csense-cs-type-regexp
+  '(symbol-start 
+    (syntax word)
+    (* (or (syntax word)
+           (syntax symbol)))
+    symbol-end
+    (group 
+     (?  "<" (+ (not (any ">"))) ">")))
+  "Regular expression for matching a type.")
+
+(eval-after-load "csense-cs"
+    (defconst csense-cs-type-regexp-groups
+      (csense-cs-get-regexp-group-num csense-cs-type-regexp)
+      "Number of regexp groups."))
+
+
+(defun csense-cs-get-completions-for-symbol-at-point ()
+  "Return list of completions for symbol at point."
+  (csense-cs-get-local-variables))
+
+
+(defun csense-cs-get-local-variables ()
+  "Return a list of variables for the current function."
+  (let* ((func-info (csense-cs-get-function-info))
+         (funbegin (plist-get func-info 'func-begin))
+         result)
+    (when funbegin
+      (dolist (regexp (list 
+                       ;; foreach
+                       (eval `(rx  "foreach" (* space) 
+                                   "(" (* space) ,@csense-cs-type-regexp
+                                   (+ space)
+                                   ,@csense-cs-symbol-regexp (+ space) "in"))
+                       ;; local variable
+                       (eval `(rx  ,@csense-cs-type-regexp
+                                   (+ space) ,@csense-cs-symbol-regexp
+                                   (* space) "="))))
+        (save-excursion
+          (while (re-search-backward regexp funbegin t)
+            (push (match-string-no-properties 
+                   (+ csense-cs-type-regexp-groups
+                      csense-cs-symbol-regexp-groups)) result))))
+
+      ;; function arguments
+      (save-excursion
+        (goto-char funbegin)
+        (backward-sexp)
+        (let ((regexp (eval `(rx ,@csense-cs-symbol-regexp 
+                                 (or "," ")")))))
+          (while (re-search-forward regexp funbegin t)
+            (push (match-string-no-properties csense-cs-symbol-regexp-groups)
+                  result)))))
+
+    result))
+
 
 (defun csense-cs-get-type-of-symbol-at-point ()  
   "Return the type of symbol at point or nil if no symbol is found."
@@ -185,6 +256,17 @@ parent."
       (if (plist-get result 'func-begin)
           result))))
 
+
+(defun csense-cs-get-regexp-group-num (list)
+  "Return the number of groups in rx regexp represented as LIST."
+  (let ((num 0))
+    (mapc (lambda (x)
+            (if (listp x)
+                (setq num (+ num (csense-cs-get-regexp-group-num x)))
+              (if (eq x 'group)
+                  (incf num))))
+          list)
+    num))
 
 (provide 'csense-cs)
 ;;; csense-cs.el ends here
