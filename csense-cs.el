@@ -58,7 +58,9 @@
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
   "Return list of completions for symbol at point."
-  (csense-cs-get-local-variables))
+  (append 
+   (csense-cs-get-local-variables)
+   (csense-cs-get-member-variables)))
 
 
 (defun csense-cs-get-local-variables ()
@@ -94,6 +96,30 @@
                   result)))))
 
     result))
+
+
+(defun csense-cs-get-member-variables ()
+  "Return a list of member variables for the current class."
+  (let ((func-info (csense-cs-get-function-info)))
+    (if func-info
+        (save-excursion
+          (goto-char (plist-get func-info 'parent-begin))
+          (let ((sections (csense-cs-get-declaration-sections)))
+            (mapcan (lambda (section)
+                      (let (vars)
+                        (goto-char (car section))
+                        (while (re-search-forward
+                                (eval `(rx  ,@csense-cs-type-regexp
+                                            (+ space) ,@csense-cs-symbol-regexp
+                                            (or (and (* space) "=")
+                                                ";")))
+                                (cdr section) t)
+                          (push (match-string-no-properties 
+                                 (+ csense-cs-type-regexp-groups
+                                    csense-cs-symbol-regexp-groups))
+                                vars))
+                        vars))
+                    sections))))))
 
 
 (defun csense-cs-get-type-of-symbol-at-point ()  
