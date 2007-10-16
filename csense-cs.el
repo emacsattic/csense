@@ -58,68 +58,139 @@
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
   "Return list of completions for symbol at point."
-  (append 
-   (csense-cs-get-local-variables)
-   (csense-cs-get-member-variables)))
+  (let ((func-info (csense-cs-get-function-info)))
+    (if func-info
+        (append (csense-cs-get-local-variables func-info)
+                (csense-cs-get-members func-info)))))
 
 
-(defun csense-cs-get-local-variables ()
+(defun csense-cs-get-local-variables (func-info)
   "Return a list of variables for the current function."
-  (let* ((func-info (csense-cs-get-function-info))
-         (funbegin (plist-get func-info 'func-begin))
-         result)
-    (when funbegin
-      (dolist (regexp (list 
-                       ;; foreach
-                       (eval `(rx  "foreach" (* space) 
-                                   "(" (* space) ,@csense-cs-type-regexp
-                                   (+ space)
-                                   ,@csense-cs-symbol-regexp (+ space) "in"))
-                       ;; local variable
-                       (eval `(rx  ,@csense-cs-type-regexp
-                                   (+ space) ,@csense-cs-symbol-regexp
-                                   (* space) "="))))
-        (save-excursion
-          (while (re-search-backward regexp funbegin t)
-            (push (match-string-no-properties 
-                   (+ csense-cs-type-regexp-groups
-                      csense-cs-symbol-regexp-groups)) result))))
-
-      ;; function arguments
+  (let ((funbegin (plist-get func-info 'func-begin))
+        result)
+    (dolist (regexp (list 
+                     ;; foreach
+                     (eval `(rx  "foreach" (* space) 
+                                 "(" (* space) ,@csense-cs-type-regexp
+                                 (+ space)
+                                 ,@csense-cs-symbol-regexp (+ space) "in"))
+                     ;; local variable
+                     (eval `(rx  ,@csense-cs-type-regexp
+                                 (+ space) ,@csense-cs-symbol-regexp
+                                 (* space) "="))))
       (save-excursion
-        (goto-char funbegin)
-        (backward-sexp)
-        (let ((regexp (eval `(rx ,@csense-cs-symbol-regexp 
-                                 (or "," ")")))))
-          (while (re-search-forward regexp funbegin t)
-            (push (match-string-no-properties csense-cs-symbol-regexp-groups)
-                  result)))))
+        (while (re-search-backward regexp funbegin t)
+          (push (match-string-no-properties 
+                 (+ csense-cs-type-regexp-groups
+                    csense-cs-symbol-regexp-groups)) result))))
+
+    ;; function arguments
+    (save-excursion
+      (goto-char funbegin)
+      (backward-sexp)
+      (let ((regexp (eval `(rx ,@csense-cs-symbol-regexp 
+                               (or "," ")")))))
+        (while (re-search-forward regexp funbegin t)
+          (push (match-string-no-properties csense-cs-symbol-regexp-groups)
+                result))))
 
     result))
 
 
-(defun csense-cs-get-member-variables ()
-  "Return a list of member variables for the current class."
-  (let ((func-info (csense-cs-get-function-info)))
-    (if func-info
+(defun csense-cs-get-members (func-info)
+  "Return a list of members for the current class."
+  (save-excursion
+    (goto-char (plist-get func-info 'parent-begin))
+    (let ((sections (csense-cs-get-declaration-sections)))
+      (mapcan (lambda (section)
+                (let (members)
+                  (goto-char (car section))
+                  (while 
+                      (or ;; member variable
+                       (if (re-search-forward
+                            (eval `(rx  ,@csense-cs-type-regexp
+                                        (+ space) ,@csense-cs-symbol-regexp
+                                        (or (and (* space) "=")
+                                            ";")))
+                            (cdr section) t)
+                             
+                           (push (match-string-no-properties 
+                                  (+ csense-cs-type-regexp-groups
+                                     csense-cs-symbol-regexp-groups))
+                                 members))
+
+                       ;; member function
+                       (if (and (re-search-forward
+                                 (eval `(rx  ,@csense-cs-symbol-regexp
+                                             (* space) "("))
+                                 (cdr section) t)
+                       (save-match-data
+                         (save-excursion
+                           (goto-char (1- (match-end 0)))
+                           (forward-sexp)
+                           ;; closing paren followed by a
+                           ;; an opening brace
+                           (looking-at (rx (* (or space ?\n)) ?{)))))
+                           (push (match-string-no-properties 
+                                  csense-cs-symbol-regexp-groups)
+                                 members))))
+                  members))
+              sections))))
+
+
+(defun csense-cs-get-declaration-sections ()
+  "Return list of buffer sections (BEGIN . END) which are outside
+of functions, so they can contain member declarations.
+
+Cursor must be at the beginning paren of structure which sections
+are to be returned."
+  (condition-case nil
+      (let (sections
+            (veryend (save-excursion
+                       (forward-sexp)
+                       (point)))
+            (end 0))
+
         (save-excursion
-          (goto-char (plist-get func-info 'parent-begin))
-          (let ((sections (csense-cs-get-declaration-sections)))
-            (mapcan (lambda (section)
-                      (let (vars)
-                        (goto-char (car section))
-                        (while (re-search-forward
-                                (eval `(rx  ,@csense-cs-type-regexp
-                                            (+ space) ,@csense-cs-symbol-regexp
-                                            (or (and (* space) "=")
-                                                ";")))
-                                (cdr section) t)
-                          (push (match-string-no-properties 
-                                 (+ csense-cs-type-regexp-groups
-                                    csense-cs-symbol-regexp-groups))
-                                vars))
-                        vars))
-                    sections))))))
+          ;; step into structure
+          (forward-char)
+
+          (while (not (eq veryend end))
+            (unless (eq end 0)
+              (goto-char end)
+              (forward-sexp))
+
+            (let ((begin (point)))        
+              (setq end 
+                    (or (save-excursion
+                          (let (pos)
+                            (while (and (search-forward "{" veryend t)
+                                        (if (save-excursion
+                                              (beginning-of-line)
+                                              ;; FIXME: doesn't handle
+                                              ;; multiline comments
+                                              (looking-at (rx (* space) "//")))
+                                            t
+                                          (setq pos (1- (point)))
+                                          nil)))
+                            pos))
+                        veryend))
+
+              (push (cons begin end) sections)))
+                      
+          (nreverse sections)))
+
+    (scan-error)))
+
+
+
+
+
+
+
+
+
+
 
 
 (defun csense-cs-get-type-of-symbol-at-point ()  
@@ -133,6 +204,9 @@
                 (csense-cs-get-type-of-symbol-at-point)))
 
             (csense-cs-lookup-unqualified-symbol symbol)))))
+
+
+
 
 
 (defun csense-cs-lookup-unqualified-symbol (symbol)
@@ -185,51 +259,6 @@
                                  (cdr section) t)
                                 (match-string-no-properties 1)))
                           sections))))))))))
-
-
-(defun csense-cs-get-declaration-sections ()
-  "Return list of buffer sections (BEGIN . END) which are outside
-of functions, so they can contain member declarations.
-
-Cursor must be at the beginning paren of structure which sections
-are to be returned."
-  (condition-case nil
-      (let (sections
-            (veryend (save-excursion
-                       (forward-sexp)
-                       (point)))
-            (end 0))
-
-        (save-excursion
-          ;; step into structure
-          (forward-char)
-
-          (while (not (eq veryend end))
-            (unless (eq end 0)
-              (goto-char end)
-              (forward-sexp))
-
-            (let ((begin (point)))        
-              (setq end 
-                    (or (save-excursion
-                          (let (pos)
-                            (while (and (search-forward "{" veryend t)
-                                        (if (save-excursion
-                                              (beginning-of-line)
-                                              ;; FIXME: doesn't handle
-                                              ;; multiline comments
-                                              (looking-at (rx (* space) "//")))
-                                            t
-                                          (setq pos (1- (point)))
-                                          nil)))
-                            pos))
-                        veryend))
-
-              (push (cons begin end) sections)))
-                      
-          (nreverse sections)))
-
-    (scan-error)))
 
 
 (defun csense-cs-get-symbol-at-point ()
