@@ -280,9 +280,9 @@ are to be returned."
   "Return a plist of information about the current function or nil
 if point is not in a function.
 
-The plist contains `func-begin', the beginning position of the
-function, and `parent-begin', the beginning position of the
-parent."
+The plist contains `func-begin', the position of the beginning
+paren of the function, and `parent-begin', the position of the
+beginning paren of the parent."
   (save-excursion
     (let (result)
       (while (let ((open (save-excursion
