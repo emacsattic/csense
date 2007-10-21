@@ -103,37 +103,61 @@
     (goto-char (plist-get func-info 'parent-begin))
     (let ((sections (csense-cs-get-declaration-sections)))
       (mapcan (lambda (section)
-                (let (members)
-                  (goto-char (car section))
+                (let ((section-begin (car section))
+                      (section-end (cdr section))
+                      members)
+                  (goto-char section-begin)
                   (while 
-                      (or ;; member variable
-                       (if (re-search-forward
-                            (eval `(rx  ,@csense-cs-type-regexp
-                                        (+ space) ,@csense-cs-symbol-regexp
-                                        (or (and (* space) "=")
-                                            ";")))
-                            (cdr section) t)
-                             
-                           (push (match-string-no-properties 
-                                  (+ csense-cs-type-regexp-groups
-                                     csense-cs-symbol-regexp-groups))
-                                 members))
+                      ;; member variable
+                      (if (re-search-forward
+                           (eval `(rx  ,@csense-cs-type-regexp
+                                       (+ space) ,@csense-cs-symbol-regexp
+                                       (or (and (* space) "=")
+                                           ";")))
+                           section-end t)
+                          (progn
+                            (push (match-string-no-properties 
+                                   (+ csense-cs-type-regexp-groups
+                                      csense-cs-symbol-regexp-groups))
+                                  members)
+                            ;; search forward
+                            t)
 
-                       ;; member function
-                       (if (and (re-search-forward
-                                 (eval `(rx  ,@csense-cs-symbol-regexp
-                                             (* space) "("))
-                                 (cdr section) t)
-                       (save-match-data
-                         (save-excursion
-                           (goto-char (1- (match-end 0)))
-                           (forward-sexp)
-                           ;; closing paren followed by a
-                           ;; an opening brace
-                           (looking-at (rx (* (or space ?\n)) ?{)))))
-                           (push (match-string-no-properties 
-                                  csense-cs-symbol-regexp-groups)
-                                 members))))
+                        ;; property
+                        (if (re-search-forward
+                             (eval `(rx  ,@csense-cs-symbol-regexp
+                                         (* (or space ?\n)) "{"))
+                             ;; the opening brace of the property is
+                             ;; the section closing brace, so it must
+                             ;; also be included in the match
+                             (1+ section-end) t)
+                            (progn
+                              (push (match-string-no-properties 
+                                     csense-cs-symbol-regexp-groups)
+                                    members)
+                              ;; if a property is found then it's a section
+                              ;; terminator, so the search should end here
+                              nil)
+
+                          ;; member function
+                          (when 
+                              (and (re-search-forward
+                                    (eval `(rx  ,@csense-cs-symbol-regexp
+                                                (* space) "("))
+                                    section-end t)
+                                   (save-match-data
+                                   (save-excursion
+                                     (goto-char (1- (match-end 0)))
+                                     (forward-sexp)
+                                     ;; closing paren followed by a
+                                     ;; an opening brace
+                                     (looking-at (rx (* (or space ?\n)) ?{)))))
+                            (push (match-string-no-properties 
+                                   csense-cs-symbol-regexp-groups)
+                                  members)
+                            ;; if a property is found then it's a section
+                            ;; terminator, so the search should end here
+                            nil))))
                   members))
               sections))))
 
@@ -250,13 +274,13 @@ are to be returned."
                   (goto-char (plist-get func-info 'parent-begin))
                   (let ((sections (csense-cs-get-declaration-sections)))
                     (some (lambda (section)
-                            (goto-char (car section))
+                            (goto-char section-begin)
                             (if (re-search-forward
                                  (eval `(rx  ,@type-regex
                                              (+ space) ,@symbol-regex 
                                              (or (and (* space) "=")
                                                  ";")))
-                                 (cdr section) t)
+                                 section-end t)
                                 (match-string-no-properties 1)))
                           sections))))))))))
 
