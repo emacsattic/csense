@@ -107,57 +107,50 @@
                       (section-end (cdr section))
                       members)
                   (goto-char section-begin)
-                  (while 
-                      ;; member variable
-                      (if (re-search-forward
-                           (eval `(rx  ,@csense-cs-type-regexp
-                                       (+ space) ,@csense-cs-symbol-regexp
-                                       (or (and (* space) "=")
-                                           ";")))
-                           section-end t)
-                          (progn
-                            (push (match-string-no-properties 
-                                   (+ csense-cs-type-regexp-groups
-                                      csense-cs-symbol-regexp-groups))
-                                  members)
-                            ;; search forward
-                            t)
+                  ;; member variables
+                  (while (re-search-forward
+                          (eval `(rx  ,@csense-cs-type-regexp
+                                      (+ space) ,@csense-cs-symbol-regexp
+                                      (or (and (* space) "=")
+                                          ";")))
+                          section-end t)
+                    (push (match-string-no-properties 
+                           (+ csense-cs-type-regexp-groups
+                              csense-cs-symbol-regexp-groups))
+                          members))
 
-                        ;; property
-                        (if (re-search-forward
-                             (eval `(rx  ,@csense-cs-symbol-regexp
-                                         (* (or space ?\n)) "{"))
-                             ;; the opening brace of the property is
-                             ;; the section closing brace, so it must
-                             ;; also be included in the match
-                             (1+ section-end) t)
-                            (progn
-                              (push (match-string-no-properties 
-                                     csense-cs-symbol-regexp-groups)
-                                    members)
-                              ;; if a property is found then it's a section
-                              ;; terminator, so the search should end here
-                              nil)
+                  ;; check possible stuff at end of section
 
-                          ;; member function
-                          (when 
-                              (and (re-search-forward
-                                    (eval `(rx  ,@csense-cs-symbol-regexp
-                                                (* space) "("))
-                                    section-end t)
-                                   (save-match-data
-                                   (save-excursion
-                                     (goto-char (1- (match-end 0)))
-                                     (forward-sexp)
-                                     ;; closing paren followed by a
-                                     ;; an opening brace
-                                     (looking-at (rx (* (or space ?\n)) ?{)))))
-                            (push (match-string-no-properties 
-                                   csense-cs-symbol-regexp-groups)
-                                  members)
-                            ;; if a property is found then it's a section
-                            ;; terminator, so the search should end here
-                            nil))))
+                  ;; property
+                  (if (re-search-forward
+                       (eval `(rx  ,@csense-cs-symbol-regexp
+                                   (* (or space ?\n)) "{"))
+                       ;; the opening brace of the property is
+                       ;; the section closing brace, so it must
+                       ;; also be included in the match
+                       (1+ section-end) t)
+                      (push (match-string-no-properties 
+                             csense-cs-symbol-regexp-groups)
+                            members)
+
+                    ;; member function
+                    (if (and (re-search-forward
+                              (eval `(rx  ,@csense-cs-symbol-regexp
+                                          (* space) "("))
+                              section-end t)
+                                   
+                             ;; closing paren followed by a
+                             ;; an opening brace
+                             (save-match-data
+                             (save-excursion
+                               (goto-char (1- (match-end 0)))
+                               (forward-sexp)
+                               (looking-at (rx (* (or space ?\n)) ?{)))))
+                        (let ((symbol (match-string-no-properties 
+                                       csense-cs-symbol-regexp-groups)))
+                          ;; weed out constructors
+                          (unless (equal symbol (plist-get func-info 'class-name))
+                            (push symbol members)))))
                   members))
               sections))))
 
@@ -304,9 +297,20 @@ are to be returned."
   "Return a plist of information about the current function or nil
 if point is not in a function.
 
-The plist contains `func-begin', the position of the beginning
-paren of the function, and `parent-begin', the position of the
-beginning paren of the parent."
+The plist values:
+
+ `func-begin'
+
+    The position of the beginning paren of the function.
+
+  `parent-begin'
+
+    The position of the beginning paren of the parent.
+
+  `class-name'
+
+    The name of the containing class.
+"
   (save-excursion
     (let (result)
       (while (let ((open (save-excursion
@@ -324,10 +328,16 @@ beginning paren of the parent."
 
                      (goto-char open)
                      (forward-line -1)
-                     (if (looking-at ".*\\(class\\|struct\\\)")
+                     (if (looking-at (eval `(rx (* not-newline)
+                                                "class" (+ space)
+                                                ,@csense-cs-symbol-regexp)))
                          (progn
                            (setq result (plist-put result 'parent-begin open))
-                           ;; stop search
+                           (setq result 
+                                 (plist-put result 
+                                            'class-name
+                                            (match-string-no-properties
+                                             csense-cs-symbol-regexp-groups)))
                            nil)
                        (setq result (plist-put result 'func-begin open))
                        ;; search further for containing class
