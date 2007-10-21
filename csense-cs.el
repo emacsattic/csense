@@ -36,9 +36,9 @@
   "Regular expression for matching a symbol.")
 
 (eval-after-load "csense-cs"
-    (defconst csense-cs-symbol-regexp-groups
-      (csense-cs-get-regexp-group-num csense-cs-symbol-regexp)
-      "Number of regexp groups."))
+    '(defconst csense-cs-symbol-regexp-groups
+       (csense-cs-get-regexp-group-num csense-cs-symbol-regexp)
+       "Number of regexp groups."))
 
 (defconst csense-cs-type-regexp
   '(symbol-start 
@@ -51,9 +51,9 @@
   "Regular expression for matching a type.")
 
 (eval-after-load "csense-cs"
-    (defconst csense-cs-type-regexp-groups
-      (csense-cs-get-regexp-group-num csense-cs-type-regexp)
-      "Number of regexp groups."))
+    '(defconst csense-cs-type-regexp-groups
+       (csense-cs-get-regexp-group-num csense-cs-type-regexp)
+       "Number of regexp groups."))
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
@@ -289,25 +289,29 @@ beginning paren of the parent."
                            (re-search-backward "{" nil t)))
                    (close (save-excursion
                             (re-search-backward "}" nil t))))
-               (when open
-                 (if (and close 
-                          (> close open))
-                     (progn 
-                       (goto-char (1+ close))
-                       (backward-sexp)
-                       ;; search further
-                       t)
+               (if open
+                   (if (and close 
+                            (> close open))
+                       (progn 
+                         (goto-char (1+ close))
+                         (backward-sexp)
+                         ;; search further
+                         t)
 
-                   (goto-char open)
-                   (forward-line -1)
-                   (if (looking-at "\\s-*\\(class\\|struct\\\)")
-                       (progn
-                         (setq result (plist-put result 'parent-begin open))
-                         ;; stop search
-                         nil)
-                     (setq result (plist-put result 'func-begin open))
-                     ;; search further for containing class
-                     t)))))
+                     (goto-char open)
+                     (forward-line -1)
+                     (if (looking-at ".*\\(class\\|struct\\\)")
+                         (progn
+                           (setq result (plist-put result 'parent-begin open))
+                           ;; stop search
+                           nil)
+                       (setq result (plist-put result 'func-begin open))
+                       ;; search further for containing class
+                       t))
+
+                 ;; containing class not found
+                 ;; terminate the search
+                 (setq result nil))))
       (if (plist-get result 'func-begin)
           result))))
 
