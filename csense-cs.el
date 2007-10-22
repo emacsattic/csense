@@ -47,6 +47,12 @@
   "Regular expression for matching a type.")
 
 
+(defconst csense-cs-typed-symbol-regexp
+  (append csense-cs-type-regexp '((+ space)) csense-cs-symbol-regexp)
+  "Regular expression for matching a type.")
+
+
+
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
   "Return list of completions for symbol at point."
@@ -63,36 +69,23 @@
     (dolist (regexp (list 
                      ;; foreach
                      (eval `(rx  "foreach" (* space) 
-                                 "(" (* space) ,@csense-cs-type-regexp
-                                 (+ space)
-                                 ,@csense-cs-symbol-regexp (+ space) "in"))
+                                 "(" (* space) ,@csense-cs-typed-symbol-regexp
+                                 (+ space) "in"))
                      ;; local variable
-                     (eval `(rx  ,@csense-cs-type-regexp
-                                 (+ space) ,@csense-cs-symbol-regexp
+                     (eval `(rx  ,@csense-cs-typed-symbol-regexp
                                  (* space) (or "=" ";")))))
       (save-excursion
         (while (re-search-backward regexp funbegin t)
-          (push (list 'name (csense-cs-get-match-result 
-                             (list csense-cs-type-regexp
-                                   csense-cs-symbol-regexp))
-                      'type (csense-cs-get-match-result 
-                             (list csense-cs-type-regexp)))
-                result))))
+          (push (csense-cs-get-typed-symbol-regexp-result) result))))
 
     ;; function arguments
     (save-excursion
       (goto-char funbegin)
       (backward-sexp)
-      (let ((regexp (eval `(rx ,@csense-cs-type-regexp (+ space) 
-                               ,@csense-cs-symbol-regexp 
+      (let ((regexp (eval `(rx ,@csense-cs-typed-symbol-regexp
                                (or "," ")")))))
         (while (re-search-forward regexp funbegin t)
-          (push (list 'name (csense-cs-get-match-result 
-                             (list csense-cs-type-regexp
-                                   csense-cs-symbol-regexp))
-                      'type (csense-cs-get-match-result 
-                             (list csense-cs-type-regexp)))
-                result))))
+          (push (csense-cs-get-typed-symbol-regexp-result) result))))
 
     result))
 
@@ -109,42 +102,27 @@
                   (goto-char section-begin)
                   ;; member variables
                   (while (re-search-forward
-                          (eval `(rx  ,@csense-cs-type-regexp
-                                      (+ space) ,@csense-cs-symbol-regexp
+                          (eval `(rx  ,@csense-cs-typed-symbol-regexp
                                       (or (and (* space) "=")
                                           ";")))
                           section-end t)
-                    (push (list 'name (csense-cs-get-match-result 
-                                       (list csense-cs-type-regexp
-                                             csense-cs-symbol-regexp))
-                                'type (csense-cs-get-match-result 
-                                       (list csense-cs-type-regexp)))
-                          members))
+                    (push (csense-cs-get-typed-symbol-regexp-result) members))
 
                   ;; check possible stuff at end of section
 
                   ;; property
                   (if (re-search-forward
-                       (eval `(rx  ,@csense-cs-type-regexp
-                                   (+ space) 
-                                   ,@csense-cs-symbol-regexp
+                       (eval `(rx  ,@csense-cs-typed-symbol-regexp
                                    (* (or space ?\n)) "{"))
                        ;; the opening brace of the property is
                        ;; the section closing brace, so it must
                        ;; also be included in the match
                        (1+ section-end) t)
-                      (push (list 'name (csense-cs-get-match-result 
-                                         (list csense-cs-type-regexp
-                                               csense-cs-symbol-regexp))
-                                  'type (csense-cs-get-match-result 
-                                         (list csense-cs-type-regexp)))
-                            members)
+                      (push (csense-cs-get-typed-symbol-regexp-result) members)
 
                     ;; member function
                     (if (and (re-search-forward
-                              (eval `(rx  ,@csense-cs-type-regexp
-                                          (+ space) 
-                                          ,@csense-cs-symbol-regexp
+                              (eval `(rx  ,@csense-cs-typed-symbol-regexp
                                           (* space) "("))
                               section-end t)
                                    
@@ -160,11 +138,7 @@
                                                      csense-cs-symbol-regexp))))
                           ;; weed out constructors
                           (unless (equal symbol (plist-get func-info 'class-name))
-                            (push (list 'name (csense-cs-get-match-result 
-                                               (list csense-cs-type-regexp
-                                                     csense-cs-symbol-regexp))
-                                        'type (csense-cs-get-match-result 
-                                               (list csense-cs-type-regexp)))
+                            (push (csense-cs-get-typed-symbol-regexp-result)
                                   members)))))
                   members))
               sections))))
@@ -362,6 +336,15 @@ The plist values:
                  (setq result nil))))
       (if (plist-get result 'func-begin)
           result))))
+
+
+(defun csense-cs-get-typed-symbol-regexp-result ()
+  "Return the result of matching a `csense-cs-typed-symbol-regexp' as a plist."
+  (list 'name (csense-cs-get-match-result 
+               (list csense-cs-type-regexp
+                     csense-cs-symbol-regexp))
+        'type (csense-cs-get-match-result 
+               (list csense-cs-type-regexp))))
 
 
 (defun csense-cs-get-match-result (regexps)
