@@ -38,11 +38,11 @@
 
 (defconst csense-cs-type-regexp
   '(symbol-start 
-    (syntax word)
-    (* (or (syntax word)
-           (syntax symbol)))
-    symbol-end
     (group 
+     (syntax word)
+     (* (or (syntax word)
+            (syntax symbol)))
+     symbol-end
      (?  "<" (+ (not (any ">"))) ">")))
   "Regular expression for matching a type.")
 
@@ -69,19 +69,30 @@
                      ;; local variable
                      (eval `(rx  ,@csense-cs-type-regexp
                                  (+ space) ,@csense-cs-symbol-regexp
-                                 (* space) "="))))
+                                 (* space) (or "=" ";")))))
       (save-excursion
         (while (re-search-backward regexp funbegin t)
-          (push (csense-cs-get-match-result) result))))
+          (push (list 'name (csense-cs-get-match-result 
+                             (list csense-cs-type-regexp
+                                   csense-cs-symbol-regexp))
+                      'type (csense-cs-get-match-result 
+                             (list csense-cs-type-regexp)))
+                result))))
 
     ;; function arguments
     (save-excursion
       (goto-char funbegin)
       (backward-sexp)
-      (let ((regexp (eval `(rx ,@csense-cs-symbol-regexp 
+      (let ((regexp (eval `(rx ,@csense-cs-type-regexp (+ space) 
+                               ,@csense-cs-symbol-regexp 
                                (or "," ")")))))
         (while (re-search-forward regexp funbegin t)
-          (push (csense-cs-get-match-result) result))))
+          (push (list 'name (csense-cs-get-match-result 
+                             (list csense-cs-type-regexp
+                                   csense-cs-symbol-regexp))
+                      'type (csense-cs-get-match-result 
+                             (list csense-cs-type-regexp)))
+                result))))
 
     result))
 
@@ -103,23 +114,37 @@
                                       (or (and (* space) "=")
                                           ";")))
                           section-end t)
-                    (push (csense-cs-get-match-result) members))
+                    (push (list 'name (csense-cs-get-match-result 
+                                       (list csense-cs-type-regexp
+                                             csense-cs-symbol-regexp))
+                                'type (csense-cs-get-match-result 
+                                       (list csense-cs-type-regexp)))
+                          members))
 
                   ;; check possible stuff at end of section
 
                   ;; property
                   (if (re-search-forward
-                       (eval `(rx  ,@csense-cs-symbol-regexp
+                       (eval `(rx  ,@csense-cs-type-regexp
+                                   (+ space) 
+                                   ,@csense-cs-symbol-regexp
                                    (* (or space ?\n)) "{"))
                        ;; the opening brace of the property is
                        ;; the section closing brace, so it must
                        ;; also be included in the match
                        (1+ section-end) t)
-                      (push (csense-cs-get-match-result) members)
+                      (push (list 'name (csense-cs-get-match-result 
+                                         (list csense-cs-type-regexp
+                                               csense-cs-symbol-regexp))
+                                  'type (csense-cs-get-match-result 
+                                         (list csense-cs-type-regexp)))
+                            members)
 
                     ;; member function
                     (if (and (re-search-forward
-                              (eval `(rx  ,@csense-cs-symbol-regexp
+                              (eval `(rx  ,@csense-cs-type-regexp
+                                          (+ space) 
+                                          ,@csense-cs-symbol-regexp
                                           (* space) "("))
                               section-end t)
                                    
@@ -130,10 +155,17 @@
                                (goto-char (1- (match-end 0)))
                                (forward-sexp)
                                (looking-at (rx (* (or space ?\n)) ?{)))))
-                        (let ((symbol (csense-cs-get-match-result)))
+                        (let ((symbol (csense-cs-get-match-result
+                                               (list csense-cs-type-regexp
+                                                     csense-cs-symbol-regexp))))
                           ;; weed out constructors
                           (unless (equal symbol (plist-get func-info 'class-name))
-                            (push symbol members)))))
+                            (push (list 'name (csense-cs-get-match-result 
+                                               (list csense-cs-type-regexp
+                                                     csense-cs-symbol-regexp))
+                                        'type (csense-cs-get-match-result 
+                                               (list csense-cs-type-regexp)))
+                                  members)))))
                   members))
               sections))))
 
@@ -318,7 +350,8 @@ The plist values:
                            (setq result (plist-put result 'parent-begin open))
                            (setq result 
                                  (plist-put result 'class-name
-                                            (csense-cs-get-match-result)))
+                                            (csense-cs-get-match-result
+                                             (list csense-cs-symbol-regexp))))
                            nil)
                        (setq result (plist-put result 'func-begin open))
                        ;; search further for containing class
@@ -331,9 +364,11 @@ The plist values:
           result))))
 
 
-(defun csense-cs-get-match-result ()
-  "Return the last matching group for the last search."
-  (match-string-no-properties (1- (/ (length (match-data)) 2))))
+(defun csense-cs-get-match-result (regexps)
+  "Return the last matching group by adding up the number of
+matching groups in REGEXPS."
+  (match-string-no-properties 
+   (apply '+ (mapcar 'csense-cs-get-regexp-group-num regexps))))
 
 
 (defun csense-cs-get-regexp-group-num (list)
