@@ -189,98 +189,39 @@ are to be returned."
     (scan-error)))
 
 
-
-
-
-
-
-
-
-
-
-
 (defun csense-cs-get-type-of-symbol-at-point ()  
   "Return the type of symbol at point or nil if no symbol is found."
-  (let ((symbol (csense-cs-get-symbol-at-point)))
-    (if symbol
-        (or (save-excursion
-              (skip-syntax-backward "w_")              
-              (when (eq (char-before) ?\.)
-                (backward-char)
-                (csense-cs-get-type-of-symbol-at-point)))
+  (let ((end (point)))
+    (save-excursion
+      (unless (= (skip-syntax-backward "w_") 0)
+        (if (eq (char-before) ?\.)
+            (progn 
+              (backward-char)
+              (csense-cs-get-type-of-symbol-at-point))
 
-            (csense-cs-lookup-unqualified-symbol symbol)))))
-
-
-
-
-
-(defun csense-cs-lookup-unqualified-symbol (symbol)
-  "Look up SYMBOL which is not qualified by an other symbol."
-  (let* ((func-info (csense-cs-get-function-info))
-         (funbegin (plist-get func-info 'func-begin)))
-    (if (and symbol funbegin)
-        (save-excursion
-          (let ((symbol-regex '(symbol-start (eval symbol) symbol-end))
-                (type-regex  '(symbol-start 
-                               (group (syntax word)
-                                      (* (or (syntax word)
-                                             (syntax symbol))))
-                               (?  "<" (+ (not (any ">"))) ">"))))
-                                             
-            (if (some (lambda (regex)
-                        (re-search-backward regex funbegin t))
-                      (list 
-                       ;; foreach
-                       (eval `(rx  "foreach" (* space) 
-                                   "(" (* space) ,@type-regex (+ space)
-                                   ,@symbol-regex (+ space) "in"))
-                       ;; local variable
-                       (eval `(rx  ,@type-regex
-                                   (+ space) ,@symbol-regex (* space) "="))))
-                (match-string-no-properties 1)
-
-              ;; function param
-              (let ((paramlist-begin (progn
-                                       (goto-char funbegin)
-                                       (backward-sexp)
-                                       (point))))
-                (goto-char funbegin)
-                (if (re-search-backward
-                     (eval `(rx  ,@type-regex
-                                 (+ space) ,@symbol-regex (* space) (any ",)")))
-                     paramlist-begin t)
-                    (match-string-no-properties 1)
-
-                  ;; member
-                  (goto-char (plist-get func-info 'parent-begin))
-                  (let ((sections (csense-cs-get-declaration-sections)))
-                    (some (lambda (section)
-                            (goto-char section-begin)
-                            (if (re-search-forward
-                                 (eval `(rx  ,@type-regex
-                                             (+ space) ,@symbol-regex 
-                                             (or (and (* space) "=")
-                                                 ";")))
-                                 section-end t)
-                                (match-string-no-properties 1)))
-                          sections))))))))))
+          (let ((symbol (buffer-substring-no-properties (point) end)))
+            (or (some (lambda (symbol-info)
+                        (if (equal (plist-get symbol-info 'name) symbol)
+                            (plist-get symbol-info 'type)))
+                      (csense-cs-get-completions-for-symbol-at-point))
+                symbol)))))))
 
 
-(defun csense-cs-get-symbol-at-point ()
-  "Return symbol at point or nil."
-  (save-excursion
-    (let ((symbol (buffer-substring-no-properties
-                   (save-excursion
-                     (skip-syntax-backward "w_")
-                     (point))
-                   (save-excursion
-                     (skip-syntax-forward "w_")
-                     (point)))))
-      (if (equal symbol "")
-          nil
-        symbol))))
-
+;
+;(defun csense-cs-get-symbol-at-point ()
+;  "Return symbol at point or nil."
+;  (save-excursion
+;    (let ((symbol (buffer-substring-no-properties
+;                   (save-excursion
+;                     (skip-syntax-backward "w_")
+;                     (point))
+;                   (save-excursion
+;                     (skip-syntax-forward "w_")
+;                     (point)))))
+;      (if (equal symbol "")
+;          nil
+;        symbol))))
+;
 
 (defun csense-cs-get-function-info ()
   "Return a plist of information about the current function or nil
