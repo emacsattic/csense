@@ -35,10 +35,6 @@
            symbol-end))
   "Regular expression for matching a symbol.")
 
-(eval-after-load "csense-cs"
-    '(defconst csense-cs-symbol-regexp-groups
-       (csense-cs-get-regexp-group-num csense-cs-symbol-regexp)
-       "Number of regexp groups."))
 
 (defconst csense-cs-type-regexp
   '(symbol-start 
@@ -50,10 +46,6 @@
      (?  "<" (+ (not (any ">"))) ">")))
   "Regular expression for matching a type.")
 
-(eval-after-load "csense-cs"
-    '(defconst csense-cs-type-regexp-groups
-       (csense-cs-get-regexp-group-num csense-cs-type-regexp)
-       "Number of regexp groups."))
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
@@ -80,9 +72,7 @@
                                  (* space) "="))))
       (save-excursion
         (while (re-search-backward regexp funbegin t)
-          (push (match-string-no-properties 
-                 (+ csense-cs-type-regexp-groups
-                    csense-cs-symbol-regexp-groups)) result))))
+          (push (csense-cs-get-match-result) result))))
 
     ;; function arguments
     (save-excursion
@@ -91,8 +81,7 @@
       (let ((regexp (eval `(rx ,@csense-cs-symbol-regexp 
                                (or "," ")")))))
         (while (re-search-forward regexp funbegin t)
-          (push (match-string-no-properties csense-cs-symbol-regexp-groups)
-                result))))
+          (push (csense-cs-get-match-result) result))))
 
     result))
 
@@ -114,10 +103,7 @@
                                       (or (and (* space) "=")
                                           ";")))
                           section-end t)
-                    (push (match-string-no-properties 
-                           (+ csense-cs-type-regexp-groups
-                              csense-cs-symbol-regexp-groups))
-                          members))
+                    (push (csense-cs-get-match-result) members))
 
                   ;; check possible stuff at end of section
 
@@ -129,9 +115,7 @@
                        ;; the section closing brace, so it must
                        ;; also be included in the match
                        (1+ section-end) t)
-                      (push (match-string-no-properties 
-                             csense-cs-symbol-regexp-groups)
-                            members)
+                      (push (csense-cs-get-match-result) members)
 
                     ;; member function
                     (if (and (re-search-forward
@@ -146,8 +130,7 @@
                                (goto-char (1- (match-end 0)))
                                (forward-sexp)
                                (looking-at (rx (* (or space ?\n)) ?{)))))
-                        (let ((symbol (match-string-no-properties 
-                                       csense-cs-symbol-regexp-groups)))
+                        (let ((symbol (csense-cs-get-match-result)))
                           ;; weed out constructors
                           (unless (equal symbol (plist-get func-info 'class-name))
                             (push symbol members)))))
@@ -334,10 +317,8 @@ The plist values:
                          (progn
                            (setq result (plist-put result 'parent-begin open))
                            (setq result 
-                                 (plist-put result 
-                                            'class-name
-                                            (match-string-no-properties
-                                             csense-cs-symbol-regexp-groups)))
+                                 (plist-put result 'class-name
+                                            (csense-cs-get-match-result)))
                            nil)
                        (setq result (plist-put result 'func-begin open))
                        ;; search further for containing class
@@ -350,6 +331,11 @@ The plist values:
           result))))
 
 
+(defun csense-cs-get-match-result ()
+  "Return the last matching group for the last search."
+  (match-string-no-properties (1- (/ (length (match-data)) 2))))
+
+
 (defun csense-cs-get-regexp-group-num (list)
   "Return the number of groups in rx regexp represented as LIST."
   (let ((num 0))
@@ -360,6 +346,9 @@ The plist values:
                   (incf num))))
           list)
     num))
+
+
+
 
 (provide 'csense-cs)
 ;;; csense-cs.el ends here
