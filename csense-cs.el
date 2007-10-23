@@ -72,6 +72,22 @@
   (csense-cs-get-type-of-symbol-at-point))
 
 
+(defun csense-cs-get-completions-for-symbol-at-point ()
+  "Return list of possible completions for symbol at point."
+  (let ((end (point)))
+    (save-excursion
+      (skip-syntax-backward "w_")
+      (if (eq (char-before) ?\.)
+          (progn 
+            (backward-char)
+            (csense-cs-get-type-of-symbol-at-point))
+
+        (let ((current-symbol (buffer-substring-no-properties (point) end)))
+          (if (equal current-symbol "")
+              (csense-cs-get-symbol-information-at-point))
+          current-symbol)))))
+
+
 (defun csense-cs-get-symbol-information-at-point ()
   "Return list of information about symbols available at point."
   (let ((func-info (csense-cs-get-function-info)))
