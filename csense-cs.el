@@ -214,15 +214,20 @@ to be returned."
           (if (eq (char-before) ?\.)
               (progn 
                 (backward-char)
-                (some (lambda (symbol-info)
-                        (if (equal (plist-get symbol-info 'name) symbol)
-                            (plist-get symbol-info 'type)))
-                      (csense-cs-get-type-of-symbol-at-point)))
+                (or (some (lambda (symbol-info)
+                            (if (equal (plist-get symbol-info 'name) symbol)
+                                (plist-get symbol-info 'type)))
+                          (csense-cs-get-type-of-symbol-at-point))
 
-            (or (some (lambda (symbol-info)
-                        (if (equal (plist-get symbol-info 'name) symbol)
-                            (plist-get symbol-info 'type)))
-                      (csense-cs-get-symbol-information-at-point))
+                    (error "Don't know what '%s' is." symbol)))
+
+            (or (let ((class 
+                       (some (lambda (symbol-info)
+                               (if (equal (plist-get symbol-info 'name) symbol)
+                                   (plist-get symbol-info 'type)))
+                             (csense-cs-get-symbol-information-at-point))))
+                  (if class
+                      (csense-get-class-information class)))
 
                 ;; try it as a local class in the source
                 (csense-get-class-information symbol)
@@ -232,25 +237,26 @@ to be returned."
 
 (defun csense-get-class-information (class)
   "Look up and return information about CLASS. See Assumptions."
-  (some (lambda (file)
-          (let* ((buffer (get-file-buffer file))
-                 result kill)
-            (unless buffer
-              (setq buffer (find-file-noselect file))
-              (setq kill t))
+  (or (some (lambda (file)
+              (let* ((buffer (get-file-buffer file))
+                     result kill)
+                (unless buffer
+                  (setq buffer (find-file-noselect file))
+                  (setq kill t))
 
-            (with-current-buffer buffer
-              (save-excursion
-                (goto-char (point-min))
-                (if (re-search-forward (concat "class " class) nil t)
-                    (setq result (csense-cs-get-members class)))))
+                (with-current-buffer buffer
+                  (save-excursion
+                    (goto-char (point-min))
+                    (if (re-search-forward (concat "class " class) nil t)
+                        (setq result (csense-cs-get-members class)))))
 
-            (if kill
-                (kill-buffer buffer))
+                (if kill
+                    (kill-buffer buffer))
 
-            result))
-        csense-cs-source-files))
+                result))
+            csense-cs-source-files)
             
+      (error "Class '%s' not found." class)))
 
 ;
 ;(defun csense-cs-get-symbol-at-point ()
