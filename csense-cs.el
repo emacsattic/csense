@@ -21,11 +21,23 @@
 
 ;;; Commentary:
 
+;;; Assumptions:
+;;;   
+;;;  - In the project each class has a unique name.
+;;;
+
 
 ;;; Code:
 
 (require 'rx)
 
+
+;;; User configuration
+
+(defvar csense-cs-source-files nil
+  "List of source files of the project with full path.")
+
+;;;----------------------------------------------------------------------------
 
 (defconst csense-cs-symbol-regexp
   '(symbol-start 
@@ -93,7 +105,7 @@
 (defun csense-cs-get-members (func-info)
   "Return a list of members for the current class."
   (save-excursion
-    (goto-char (plist-get func-info 'parent-begin))
+    (goto-char (plist-get func-info 'class-begin))
     (let ((sections (csense-cs-get-declaration-sections)))
       (mapcan (lambda (section)
                 (let ((section-begin (car section))
@@ -145,11 +157,12 @@
 
 
 (defun csense-cs-get-declaration-sections ()
-  "Return list of buffer sections (BEGIN . END) which are outside
-of functions, so they can contain member declarations.
+  "Return list of buffer sections (BEGIN . END) in a class which
+are outside of functions, so they can contain member
+declarations.
 
-Cursor must be at the beginning paren of structure which sections
-are to be returned."
+Cursor must be at the beginning paren of class which sections are
+to be returned."
   (condition-case nil
       (let (sections
             (veryend (save-excursion
@@ -199,14 +212,38 @@ are to be returned."
               (backward-char)
               (csense-cs-get-type-of-symbol-at-point))
 
-          (let ((symbol (buffer-substring-no-properties (point) end)))
-            (or (some (lambda (symbol-info)
-                        (if (equal (plist-get symbol-info 'name) symbol)
-                            (plist-get symbol-info 'type)))
-                      (csense-cs-get-symbol-information-at-point))
+          (let* ((symbol (buffer-substring-no-properties (point) end))
+                 (class (some (lambda (symbol-info)
+                                (if (equal (plist-get symbol-info 'name) symbol)
+                                    (plist-get symbol-info 'type)))
+                              (csense-cs-get-symbol-information-at-point))))
+            (if class
+                (csense-get-class-information class)
+              
+              (error "Don't know what '%s' is." symbol))))))))
 
-                (error "Don't know what '%s' is." symbol))))))))
 
+(defun csense-get-class-information (class)
+  "Look up and return information about CLASS. See Assumptions."
+  (some (lambda (file)
+          (let* ((buffer (get-file-buffer file))
+                 result kill)
+            (unless buffer
+              (setq buffer (find-file-noselect file))
+              (setq kill t))
+
+            (with-current-buffer buffer
+              (save-excursion
+                (goto-char (point-min))
+                (if (re-search-forward (concat "class " class) nil t)
+                    (setq result file))))
+
+            (if kill
+                (kill-buffer buffer))
+
+            result))
+        csense-cs-source-files))
+            
 
 ;
 ;(defun csense-cs-get-symbol-at-point ()
@@ -234,9 +271,9 @@ The plist values:
 
     The position of the beginning paren of the function.
 
-  `parent-begin'
+  `class-begin'
 
-    The position of the beginning paren of the parent.
+    The position of the beginning paren of the class.
 
   `class-name'
 
@@ -263,7 +300,7 @@ The plist values:
                                                 "class" (+ space)
                                                 ,@csense-cs-symbol-regexp)))
                          (progn
-                           (setq result (plist-put result 'parent-begin open))
+                           (setq result (plist-put result 'class-begin open))
                            (setq result 
                                  (plist-put result 'class-name
                                             (csense-cs-get-match-result
