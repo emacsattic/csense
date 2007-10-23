@@ -77,10 +77,8 @@
   (let ((end (point)))
     (save-excursion
       (skip-syntax-backward "w_")
-      (if (eq (char-before) ?\.)
-          (progn 
-            (backward-char)
-            (csense-cs-get-type-of-symbol-at-point))
+      (if (csense-cs-backward-to-container)
+          (csense-cs-get-type-of-symbol-at-point)
 
         (let ((current-symbol (buffer-substring-no-properties (point) end)))
           (if (equal current-symbol "")
@@ -235,17 +233,13 @@ to be returned."
     (save-excursion
       (unless (= (skip-syntax-backward "w_") 0)
         (let ((symbol (buffer-substring-no-properties (point) end)))
-          (if (eq (char-before) ?\.)
-              (progn 
-                (backward-char)
-                (if (eq (char-before) ?\))
-                    (backward-sexp))
-                (or (some (lambda (symbol-info)
-                            (if (equal (plist-get symbol-info 'name) symbol)
-                                (plist-get symbol-info 'type)))
-                          (csense-cs-get-type-of-symbol-at-point))
+          (if (csense-cs-backward-to-container)
+              (or (some (lambda (symbol-info)
+                          (if (equal (plist-get symbol-info 'name) symbol)
+                              (plist-get symbol-info 'type)))
+                        (csense-cs-get-type-of-symbol-at-point))
 
-                    (error "Don't know what '%s' is." symbol)))
+                  (error "Don't know what '%s' is." symbol))
 
             (or (let ((class 
                        (some (lambda (symbol-info)
@@ -259,6 +253,19 @@ to be returned."
                 (csense-get-class-information symbol)
 
                 (error "Don't know what '%s' is." symbol))))))))
+
+
+(defun csense-cs-backward-to-container ()
+  "If standing at a container reference then go bacward to the
+container, and return t."
+  (when (eq (char-before) ?\.)
+    (backward-char)
+    (skip-syntax-backward " ")
+    (if (eq (char-before) ?\n)
+        (backward-char))
+    (if (eq (char-before) ?\))
+        (backward-sexp))
+    t))
 
 
 (defun csense-get-class-information (class)
