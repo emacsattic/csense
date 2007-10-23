@@ -29,6 +29,7 @@
 
 ;;; Code:
 
+(require 'csense)
 (require 'rx)
 
 
@@ -65,6 +66,10 @@
   "Regular expression for matching a type.")
 
 
+
+(defun csense-cs-get-information-for-symbol-at-point ()
+  "Return available information for symbol at point."
+  (csense-cs-get-type-of-symbol-at-point))
 
 
 (defun csense-cs-get-symbol-information-at-point ()
@@ -208,7 +213,9 @@ to be returned."
 
 (defun csense-cs-get-type-of-symbol-at-point ()  
   "Return the type of symbol at point or nil if no symbol is found."
-  (let ((end (point)))
+  (let ((end (save-excursion
+               (skip-syntax-forward "w_")
+               (point))))
     (save-excursion
       (unless (= (skip-syntax-backward "w_") 0)
         (let ((symbol (buffer-substring-no-properties (point) end)))
