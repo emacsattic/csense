@@ -74,16 +74,11 @@
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
   "Return list of possible completions for symbol at point."
-  (let ((end (point)))
-    (save-excursion
-      (skip-syntax-backward "w_")
-      (if (csense-cs-backward-to-container)
-          (csense-cs-get-type-of-symbol-at-point)
-
-        (let ((current-symbol (buffer-substring-no-properties (point) end)))
-          (if (equal current-symbol "")
-              (csense-cs-get-local-symbol-information-at-point))
-          current-symbol)))))
+  (save-excursion
+    (skip-syntax-backward "w_")
+    (if (csense-cs-backward-to-container)
+        (plist-get (csense-cs-get-type-of-symbol-at-point) 'members)
+      (csense-cs-get-local-symbol-information-at-point))))
 
 
 (defun csense-cs-get-local-symbol-information-at-point ()
@@ -238,16 +233,8 @@ to be returned."
                           (if (equal (plist-get symbol-info 'name) symbol)
                               (plist-get symbol-info 'type)))
 
-                        (let ((definition
-                                (csense-cs-get-type-of-symbol-at-point)))
-                          (with-current-buffer (find-file-noselect
-                                                (plist-get definition 'file))
-                            (save-excursion
-                              (goto-char (plist-get definition 'pos))
-                              (search-forward "{")
-                              (backward-char)
-                              (csense-cs-get-members 
-                               (plist-get definition 'name))))))
+                        (plist-get (csense-cs-get-type-of-symbol-at-point)
+                                   'members))
 
                   (error "Don't know what '%s' is." symbol))
 
@@ -296,7 +283,8 @@ container, and return t."
                                            nil t)
                         (setq result (list 'name class
                                            'file file
-                                           'pos (match-beginning 1))))))
+                                           'pos (match-beginning 1)
+                                           'members (csense-cs-get-members class))))))
 
                 (if kill
                     (kill-buffer buffer))
