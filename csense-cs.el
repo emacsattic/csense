@@ -84,12 +84,12 @@
 
         (let ((current-symbol (buffer-substring-no-properties (point) end)))
           (if (equal current-symbol "")
-              (csense-cs-get-symbol-information-at-point))
+              (csense-cs-get-local-symbol-information-at-point))
           current-symbol)))))
 
 
-(defun csense-cs-get-symbol-information-at-point ()
-  "Return list of information about symbols available at point."
+(defun csense-cs-get-local-symbol-information-at-point ()
+  "Return list of information about symbols locally available at point."
   (let ((func-info (csense-cs-get-function-info)))
     (if func-info
         (append (csense-cs-get-local-variables func-info)
@@ -251,7 +251,7 @@ to be returned."
                        (some (lambda (symbol-info)
                                (if (equal (plist-get symbol-info 'name) symbol)
                                    (plist-get symbol-info 'type)))
-                             (csense-cs-get-symbol-information-at-point))))
+                             (csense-cs-get-local-symbol-information-at-point))))
                   (if class
                       (csense-get-class-information class)))
 
