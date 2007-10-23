@@ -237,22 +237,33 @@ to be returned."
               (or (some (lambda (symbol-info)
                           (if (equal (plist-get symbol-info 'name) symbol)
                               (plist-get symbol-info 'type)))
-                        (csense-cs-get-type-of-symbol-at-point))
+
+                        (let ((definition
+                                (csense-cs-get-type-of-symbol-at-point)))
+                          (with-current-buffer (find-file-noselect
+                                                (plist-get definition 'file))
+                            (save-excursion
+                              (goto-char (plist-get definition 'pos))
+                              (search-forward "{")
+                              (backward-char)
+                              (csense-cs-get-members 
+                               (plist-get definition 'name))))))
 
                   (error "Don't know what '%s' is." symbol))
 
-            (or (let ((class 
-                       (some (lambda (symbol-info)
-                               (if (equal (plist-get symbol-info 'name) symbol)
-                                   (plist-get symbol-info 'type)))
-                             (csense-cs-get-local-symbol-information-at-point))))
-                  (if class
-                      (csense-get-class-information class)))
+            (or 
+             ;; try it as a local symbol
+             (let ((class (some (lambda (symbol-info)
+                                  (if (equal (plist-get symbol-info 'name) symbol)
+                                      (plist-get symbol-info 'type)))
+                                (csense-cs-get-local-symbol-information-at-point))))
+               (if class
+                   (csense-get-class-information class)))
 
-                ;; try it as a local class in the source
-                (csense-get-class-information symbol)
+             ;; try it as a class in the source
+             (csense-get-class-information symbol)
 
-                (error "Don't know what '%s' is." symbol))))))))
+             (error "Don't know what '%s' is." symbol))))))))
 
 
 (defun csense-cs-backward-to-container ()
@@ -280,8 +291,12 @@ container, and return t."
                 (with-current-buffer buffer
                   (save-excursion
                     (goto-char (point-min))
-                    (if (re-search-forward (concat "class " class) nil t)
-                        (setq result (csense-cs-get-members class)))))
+                    (if (re-search-forward (eval `(rx "class" (+ space)
+                                                      (group ,class)))
+                                           nil t)
+                        (setq result (list 'name class
+                                           'file file
+                                           'pos (match-beginning 1))))))
 
                 (if kill
                     (kill-buffer buffer))

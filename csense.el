@@ -41,7 +41,7 @@
                  (eq char-syntax-before ?_))
              (or (eq char-syntax-after ?w)
                  (eq char-syntax-after ?_)))
-        (message (csense-cs-get-information-for-symbol-at-point))
+        (pp (csense-cs-get-information-for-symbol-at-point))
 
       (pp (csense-cs-get-completions-for-symbol-at-point)))))
 
