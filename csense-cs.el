@@ -231,7 +231,7 @@ to be returned."
           (if (csense-cs-backward-to-container)
               (or (some (lambda (symbol-info)
                           (if (equal (plist-get symbol-info 'name) symbol)
-                              (plist-get symbol-info 'type)))
+                              symbol-info))
 
                         (plist-get (csense-cs-get-type-of-symbol-at-point)
                                    'members))
@@ -356,6 +356,10 @@ The plist values:
   (list 'name (csense-cs-get-match-result 
                (list csense-cs-type-regexp
                      csense-cs-symbol-regexp))
+        'file (buffer-file-name)
+        'pos (match-beginning (csense-cs-get-regexp-group-num 
+                               (list csense-cs-type-regexp
+                                     csense-cs-symbol-regexp)))
         'type (csense-cs-get-match-result 
                (list csense-cs-type-regexp))))
 
