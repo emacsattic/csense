@@ -291,21 +291,6 @@ container, and return t."
             
       (error "Class '%s' not found." class)))
 
-;
-;(defun csense-cs-get-symbol-at-point ()
-;  "Return symbol at point or nil."
-;  (save-excursion
-;    (let ((symbol (buffer-substring-no-properties
-;                   (save-excursion
-;                     (skip-syntax-backward "w_")
-;                     (point))
-;                   (save-excursion
-;                     (skip-syntax-forward "w_")
-;                     (point)))))
-;      (if (equal symbol "")
-;          nil
-;        symbol))))
-;
 
 (defun csense-cs-get-function-info ()
   "Return a plist of information about the current function or nil
