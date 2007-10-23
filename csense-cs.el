@@ -55,7 +55,8 @@
      (* (or (syntax word)
             (syntax symbol)))
      symbol-end
-     (?  "<" (+ (not (any ">"))) ">")))
+     (?  (or (and "<" (+ (not (any ">"))) ">")
+             "[]"))))
   "Regular expression for matching a type.")
 
 
@@ -214,6 +215,8 @@ to be returned."
           (if (eq (char-before) ?\.)
               (progn 
                 (backward-char)
+                (if (eq (char-before) ?\))
+                    (backward-sexp))
                 (or (some (lambda (symbol-info)
                             (if (equal (plist-get symbol-info 'name) symbol)
                                 (plist-get symbol-info 'type)))
