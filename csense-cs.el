@@ -54,8 +54,8 @@
 
 
 
-(defun csense-cs-get-completions-for-symbol-at-point ()
-  "Return list of completions for symbol at point."
+(defun csense-cs-get-symbol-information-at-point ()
+  "Return list of information about symbols available at point."
   (let ((func-info (csense-cs-get-function-info)))
     (if func-info
         (append (csense-cs-get-local-variables func-info)
@@ -203,8 +203,9 @@ are to be returned."
             (or (some (lambda (symbol-info)
                         (if (equal (plist-get symbol-info 'name) symbol)
                             (plist-get symbol-info 'type)))
-                      (csense-cs-get-completions-for-symbol-at-point))
-                symbol)))))))
+                      (csense-cs-get-symbol-information-at-point))
+
+                (error "Don't know what '%s' is." symbol))))))))
 
 
 ;
