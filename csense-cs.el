@@ -71,7 +71,9 @@
   (let ((func-info (csense-cs-get-function-info)))
     (if func-info
         (append (csense-cs-get-local-variables func-info)
-                (csense-cs-get-members func-info)))))
+                (save-excursion
+                  (goto-char (plist-get func-info 'class-begin))
+                  (csense-cs-get-members (plist-get func-info 'class-name)))))))
 
 
 (defun csense-cs-get-local-variables (func-info)
@@ -102,10 +104,12 @@
     result))
 
 
-(defun csense-cs-get-members (func-info)
-  "Return a list of members for the current class."
+(defun csense-cs-get-members (class)
+  "Return a list of members for the current class.
+Cursor must be before the opening paren of the class.
+
+CLASS is the name of the class."
   (save-excursion
-    (goto-char (plist-get func-info 'class-begin))
     (let ((sections (csense-cs-get-declaration-sections)))
       (mapcan (lambda (section)
                 (let ((section-begin (car section))
@@ -148,8 +152,9 @@
                         (let ((symbol (csense-cs-get-match-result
                                                (list csense-cs-type-regexp
                                                      csense-cs-symbol-regexp))))
-                          ;; weed out constructors
-                          (unless (equal symbol (plist-get func-info 'class-name))
+                          ;; weed out constructors and Main function
+                          (unless (or (equal symbol class)
+                                      (equal symbol "Main"))
                             (push (csense-cs-get-typed-symbol-regexp-result)
                                   members)))))
                   members))
@@ -157,9 +162,7 @@
 
 
 (defun csense-cs-get-declaration-sections ()
-  "Return list of buffer sections (BEGIN . END) in a class which
-are outside of functions, so they can contain member
-declarations.
+  "Return list of buffer sections (BEGIN . END) of a class.
 
 Cursor must be at the beginning paren of class which sections are
 to be returned."
@@ -172,7 +175,7 @@ to be returned."
 
         (save-excursion
           ;; step into structure
-          (forward-char)
+          (search-forward "{")
 
           (while (not (eq veryend end))
             (unless (eq end 0)
@@ -207,20 +210,24 @@ to be returned."
   (let ((end (point)))
     (save-excursion
       (unless (= (skip-syntax-backward "w_") 0)
-        (if (eq (char-before) ?\.)
-            (progn 
-              (backward-char)
-              (csense-cs-get-type-of-symbol-at-point))
+        (let ((symbol (buffer-substring-no-properties (point) end)))
+          (if (eq (char-before) ?\.)
+              (progn 
+                (backward-char)
+                (some (lambda (symbol-info)
+                        (if (equal (plist-get symbol-info 'name) symbol)
+                            (plist-get symbol-info 'type)))
+                      (csense-cs-get-type-of-symbol-at-point)))
 
-          (let* ((symbol (buffer-substring-no-properties (point) end))
-                 (class (some (lambda (symbol-info)
-                                (if (equal (plist-get symbol-info 'name) symbol)
-                                    (plist-get symbol-info 'type)))
-                              (csense-cs-get-symbol-information-at-point))))
-            (if class
-                (csense-get-class-information class)
-              
-              (error "Don't know what '%s' is." symbol))))))))
+            (or (some (lambda (symbol-info)
+                        (if (equal (plist-get symbol-info 'name) symbol)
+                            (plist-get symbol-info 'type)))
+                      (csense-cs-get-symbol-information-at-point))
+
+                ;; try it as a local class in the source
+                (csense-get-class-information symbol)
+
+                (error "Don't know what '%s' is." symbol))))))))
 
 
 (defun csense-get-class-information (class)
@@ -236,7 +243,7 @@ to be returned."
               (save-excursion
                 (goto-char (point-min))
                 (if (re-search-forward (concat "class " class) nil t)
-                    (setq result file))))
+                    (setq result (csense-cs-get-members class)))))
 
             (if kill
                 (kill-buffer buffer))
