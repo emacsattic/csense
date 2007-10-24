@@ -38,6 +38,17 @@
 (defvar csense-cs-source-files nil
   "List of source files of the project with full path.")
 
+
+(defvar csense-cs-assemblies nil
+  "List of external assembly files used by the project.
+
+If the assembly has a corresponding XML file in the same
+directory then it will be used as well.")
+
+
+(defvar csense-cs-assembly-parser-program "netsense.exe"
+  "Path to program used to load information from assemblies.")
+
 ;;;----------------------------------------------------------------------------
 
 (defconst csense-cs-symbol-regexp
@@ -66,6 +77,10 @@
   "Regular expression for matching a type.")
 
 
+(defvar csense-cs-type-hash (make-hash-table)
+  "Hash containing known type information.")
+
+
 (defun csense-cs-setup-csense-frontend ()
   "Setup up CodeSense frontend for C#."
   (require 'csense)
@@ -79,6 +94,26 @@
         'csense-cs-get-information-for-symbol-at-point)
   (setq csense-completion-function 
         'csense-cs-get-completions-for-symbol-at-point))
+
+
+(defun csense-cs-initialize ()
+  "Initialize CSharp support."
+  (clrhash csense-cs-type-hash)
+
+  (dolist (assembly csense-cs-assemblies)    
+    (message "Loading information from assembly: %s" assembly)
+    (with-temp-buffer
+      (unless (= (call-process csense-cs-assembly-parser-program
+                               nil t nil assembly)
+                 0)
+        (error "Cannot load information from assembly: %s" assembly))
+
+      (goto-char (point-min))
+
+      (dolist (type (read (current-buffer)))
+        (puthash (plist-get type 'name) type csense-cs-type-hash ))))
+
+  (message "Done."))
 
 
 (defun csense-cs-get-information-for-symbol-at-point ()

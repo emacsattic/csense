@@ -1,4 +1,4 @@
-// Copyright (C) 2007  
+﻿// Copyright (C) 2007  
 //
 // This file is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -15,7 +15,7 @@
 // the Free Software Foundation, Inc., 51 Franklin Street, Fifth Floor,
 // Boston, MA 02110-1301, USA.
 
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
@@ -29,7 +29,7 @@ namespace netsense
 	{
 		static void Main(String[] args)
 		{
-			string file = @"C:\WINDOWS\Microsoft.NET\Framework\v2.0.50727\mscorlib.dll";
+			string file = args[0];
 			string xml = Path.Combine(Path.GetDirectoryName(file),
 			                          Path.GetFileNameWithoutExtension(file) +
 			                          ".xml");
@@ -55,7 +55,7 @@ namespace netsense
 			int count = 15;
 			Assembly asm = Assembly.LoadFile(file);
 			{
-				Console.WriteLine("'(");
+				Console.WriteLine("(");
 
 				foreach (Type t in asm.GetTypes())
 				{
