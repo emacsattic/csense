@@ -1,4 +1,4 @@
-﻿// Copyright (C) 2007  
+﻿// Copyright (C) 2007
 //
 // This file is free software; you can redistribute it and/or modify
 // it under the terms of the GNU General Public License as published by
@@ -61,9 +61,12 @@ namespace netsense
 				{
 					Console.WriteLine("(name \"" + t.FullName + "\"");
 					
-					string doc;
-					if (docs.TryGetValue("T:" + t.FullName, out doc))
-						Console.WriteLine("\tdoc \"" + doc + "\"");
+					if (docs != null)
+					{
+						string doc;
+						if (docs.TryGetValue("T:" + t.FullName, out doc))
+							Console.WriteLine("\tdoc \"" + doc + "\"");
+					}
 
 					Console.WriteLine("\tmembers (");
 

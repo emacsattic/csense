@@ -1,6 +1,8 @@
 Things to do
 ============
 
+- handling scopes (foreach, using, catch) within functions
+
 - handling this 
 
 - handling base
