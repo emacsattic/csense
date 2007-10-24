@@ -1,4 +1,4 @@
-;;; csense.el --- Code Sense for Emacs
+;;; csense.el --- Coding assistant front-end
 
 ;; Copyright (C) 2007  
 
@@ -24,6 +24,25 @@
 ;;; Code:
 
 
+;;; User configuration
+
+(defvar csense-information-function nil
+  "Function called with no arguments to get information about the symbol at point.
+
+The function should return a plist with the follwing values:")
+
+(make-variable-buffer-local 'csense-information-function)
+
+
+(defvar csense-completion-function nil
+  "Function called with no arguments to get completions for the symbol at point.
+
+The function should return a list of completions available at point. Each completion
+must be a plist with the follwing values:")
+
+(make-variable-buffer-local 'csense-completion-function)
+
+;;;----------------------------------------------------------------------------
 (defun csense-setup ()
   "Setup Code Sense for the current buffer."
   (interactive)
@@ -41,9 +60,9 @@
                  (eq char-syntax-before ?_))
              (or (eq char-syntax-after ?w)
                  (eq char-syntax-after ?_)))
-        (pp (csense-cs-get-information-for-symbol-at-point))
+        (pp (funcall csense-information-function))
 
-      (pp (csense-cs-get-completions-for-symbol-at-point)))))
+      (pp (funcall csense-completion-function)))))
 
 
 (provide 'csense)

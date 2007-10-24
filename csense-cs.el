@@ -383,6 +383,15 @@ matching groups in REGEXPS."
     num))
 
 
+(defun csense-cs-setup ()
+  "Setup up CodeSense for the current C# buffer."
+  (setq csense-information-function 
+        'csense-cs-get-information-for-symbol-at-point)
+  (setq csense-completion-function 
+        'csense-cs-get-completions-for-symbol-at-point))
+
+(add-hook 'csharp-mode-hook 'csense-cs-setup)
+(add-hook 'csharp-mode-hook 'csense-setup)
 
 
 (provide 'csense-cs)
