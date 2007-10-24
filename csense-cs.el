@@ -66,6 +66,20 @@
   "Regular expression for matching a type.")
 
 
+(defun csense-cs-setup-csense-frontend ()
+  "Setup up CodeSense frontend for C#."
+  (require 'csense)
+  (add-hook 'csharp-mode-hook 'csense-cs-setup)
+  (add-hook 'csharp-mode-hook 'csense-setup))
+  
+
+(defun csense-cs-setup ()
+  "Setup CodeSense for the current C# buffer."
+  (setq csense-information-function 
+        'csense-cs-get-information-for-symbol-at-point)
+  (setq csense-completion-function 
+        'csense-cs-get-completions-for-symbol-at-point))
+
 
 (defun csense-cs-get-information-for-symbol-at-point ()
   "Return available information for symbol at point."
@@ -381,17 +395,6 @@ matching groups in REGEXPS."
                   (incf num))))
           list)
     num))
-
-
-(defun csense-cs-setup ()
-  "Setup up CodeSense for the current C# buffer."
-  (setq csense-information-function 
-        'csense-cs-get-information-for-symbol-at-point)
-  (setq csense-completion-function 
-        'csense-cs-get-completions-for-symbol-at-point))
-
-(add-hook 'csharp-mode-hook 'csense-cs-setup)
-(add-hook 'csharp-mode-hook 'csense-setup)
 
 
 (provide 'csense-cs)
