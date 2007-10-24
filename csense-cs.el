@@ -77,7 +77,7 @@ directory then it will be used as well.")
   "Regular expression for matching a type.")
 
 
-(defvar csense-cs-type-hash (make-hash-table)
+(defvar csense-cs-type-hash (make-hash-table :test 'equal)
   "Hash containing known type information.")
 
 
@@ -90,6 +90,7 @@ directory then it will be used as well.")
 
 (defun csense-cs-setup ()
   "Setup CodeSense for the current C# buffer."
+  (csense-cs-initialize)
   (setq csense-information-function 
         'csense-cs-get-information-for-symbol-at-point)
   (setq csense-completion-function 
@@ -97,23 +98,22 @@ directory then it will be used as well.")
 
 
 (defun csense-cs-initialize ()
-  "Initialize CSharp support."
-  (clrhash csense-cs-type-hash)
+  "Initialize CSharp support."  
+  (unless (> (hash-table-count csense-cs-type-hash) 0)
+    (dolist (assembly csense-cs-assemblies)    
+      (message "Loading information from assembly: %s" assembly)
+      (with-temp-buffer
+        (unless (= (call-process csense-cs-assembly-parser-program
+                                 nil t nil assembly)
+                   0)
+          (error "Cannot load information from assembly: %s" assembly))
 
-  (dolist (assembly csense-cs-assemblies)    
-    (message "Loading information from assembly: %s" assembly)
-    (with-temp-buffer
-      (unless (= (call-process csense-cs-assembly-parser-program
-                               nil t nil assembly)
-                 0)
-        (error "Cannot load information from assembly: %s" assembly))
+        (goto-char (point-min))
 
-      (goto-char (point-min))
+        (dolist (type (read (current-buffer)))
+          (puthash (plist-get type 'name) type csense-cs-type-hash))))
 
-      (dolist (type (read (current-buffer)))
-        (puthash (plist-get type 'name) type csense-cs-type-hash ))))
-
-  (message "Done."))
+    (message "Done.")))
 
 
 (defun csense-cs-get-information-for-symbol-at-point ()
@@ -317,31 +317,47 @@ container, and return t."
 
 (defun csense-get-class-information (class)
   "Look up and return information about CLASS. See Assumptions."
-  (or (some (lambda (file)
-              (let* ((buffer (get-file-buffer file))
-                     result kill)
-                (unless buffer
-                  (setq buffer (find-file-noselect file))
-                  (setq kill t))
+  (or 
+   ;; try to search for it in the source files
+   (some (lambda (file)
+           (let* ((buffer (get-file-buffer file))
+                  result kill)
+             (unless buffer
+               (setq buffer (find-file-noselect file))
+               (setq kill t))
 
-                (with-current-buffer buffer
-                  (save-excursion
-                    (goto-char (point-min))
-                    (if (re-search-forward (eval `(rx "class" (+ space)
-                                                      (group ,class)))
-                                           nil t)
-                        (setq result (list 'name class
-                                           'file file
-                                           'pos (match-beginning 1)
-                                           'members (csense-cs-get-members class))))))
+             (with-current-buffer buffer
+               (save-excursion
+                 (goto-char (point-min))
+                 (if (re-search-forward (eval `(rx "class" (+ space)
+                                                   (group ,class)))
+                                        nil t)
+                     (setq result (list 'name class
+                                        'file file
+                                        'pos (match-beginning 1)
+                                        'members (csense-cs-get-members class))))))
 
-                (if kill
-                    (kill-buffer buffer))
+             (if kill
+                 (kill-buffer buffer))
 
-                result))
-            csense-cs-source-files)
-            
-      (error "Class '%s' not found." class)))
+             result))
+         csense-cs-source-files)
+
+   ;; try usings
+   (let (class-info)
+     (save-excursion
+       (goto-char (point-min))
+       (while (and (not class-info)
+                   (re-search-forward (rx line-start (* space) 
+                                          "using" (+ space) 
+                                          (group (+ nonl)) (* space) ";")
+                                      nil t))
+         (setq class-info (gethash (concat (match-string-no-properties 1) 
+                                           "." class)
+                                   csense-cs-type-hash))))
+     class-info)
+
+   (error "Class '%s' not found." class)))
 
 
 (defun csense-cs-get-function-info ()

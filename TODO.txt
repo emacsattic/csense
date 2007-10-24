@@ -5,6 +5,12 @@ Things to do
 
 - handling base
 
+- generics
+
+- using with prefix
+
+- arrays
+
 - Parsing other source files too 
 
 - honor protection levels 
