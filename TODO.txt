@@ -1,0 +1,14 @@
+Things to do
+============
+
+- handling this 
+
+- handling base
+
+- Parsing other source files too 
+
+- honor protection levels 
+
+- handle inherited members 
+
+- caching
