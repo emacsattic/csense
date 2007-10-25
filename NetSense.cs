@@ -59,6 +59,9 @@ namespace netsense
 
 				foreach (Type t in asm.GetTypes())
 				{
+//					if (t.FullName != "System.Object")
+//						continue;
+					
 					Console.WriteLine("(name \"" + t.FullName + "\"");
 					
 					if (docs != null)
@@ -70,10 +73,25 @@ namespace netsense
 
 					Console.WriteLine("\tmembers (");
 
-					foreach (MemberInfo member in t.GetMembers())
+					foreach (MemberInfo member in t.GetMembers(BindingFlags.Public |
+					                                           BindingFlags.Static |
+					                                           BindingFlags.NonPublic |
+					                                           BindingFlags.Instance))
 					{
+						string type;
+						
+						switch (member.MemberType)
+						{
+							case MemberTypes.Method:
+								type = ((MethodInfo)member).ReturnType.FullName;
+								break;
+							default:
+								type = member.ReflectedType.FullName;
+								break;
+						}
+						
 						Console.WriteLine("\t\t(name \"" + member.Name + "\" " +
-						                  "type \"" + member.DeclaringType.FullName + "\")");
+						                  "type \"" + type + "\")");
 					}
 
 					Console.WriteLine("\t)");
