@@ -1,6 +1,9 @@
 Things to do
 ============
 
+For release
+-----------
+
 - handling scopes (foreach, using, catch) within functions
 
 - handling scopes without blocks (foreach, for, etc)
@@ -15,10 +18,18 @@ Things to do
 
 - arrays
 
-- Parsing other source files too 
-
 - honor protection levels 
 
 - handle inherited members 
 
 - caching
+
+
+Someday
+-------
+
+- overloaded functions
+
+- construtor initializers : base()...
+
+- creating objects
