@@ -365,7 +365,7 @@ container, and return t."
            (setq class-info (gethash class-name csense-cs-type-hash)))))
      class-info)
 
-   (error "Class '%s' not found." class)))
+   (error "Class '%s' not found. Are you perhaps missing an assembly?" class)))
 
 
 (defun csense-cs-get-function-info ()
