@@ -3,6 +3,8 @@ Things to do
 
 - handling scopes (foreach, using, catch) within functions
 
+- handling scopes without blocks (foreach, for, etc)
+
 - handling this 
 
 - handling base
