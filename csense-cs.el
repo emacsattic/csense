@@ -330,13 +330,17 @@ container, and return t."
              (with-current-buffer buffer
                (save-excursion
                  (goto-char (point-min))
-                 (if (re-search-forward (eval `(rx "class" (+ space)
-                                                   (group ,class)))
-                                        nil t)
-                     (setq result (list 'name class
-                                        'file file
-                                        'pos (match-beginning 1)
-                                        'members (csense-cs-get-members class))))))
+                 (when (re-search-forward (eval `(rx "class" (+ space)
+                                                     (group ,class)))
+                                          nil t)
+                   ;; position the cursor for csense-cs-get-members
+                   ;; FIXME: it should be done some other way, it's clumsy
+                   (search-forward "{")
+                   (backward-char)
+                   (setq result (list 'name class
+                                      'file file
+                                      'pos (match-beginning 1)
+                                      'members (csense-cs-get-members class))))))
 
              (if kill
                  (kill-buffer buffer))
