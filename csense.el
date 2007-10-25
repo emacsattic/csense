@@ -19,7 +19,7 @@
 
 ;;; Commentary:
 
-;; 
+;;  Tested on Emacs 22.
 
 ;;; Code:
 
