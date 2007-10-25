@@ -280,7 +280,8 @@ to be returned."
           (if (csense-cs-backward-to-container)
               (or (some (lambda (symbol-info)
                           (if (equal (plist-get symbol-info 'name) symbol)
-                              symbol-info))
+                              (csense-get-class-information
+                               (plist-get symbol-info 'type))))
 
                         (plist-get (csense-cs-get-type-of-symbol-at-point)
                                    'members))
@@ -296,7 +297,7 @@ to be returned."
                (if class
                    (csense-get-class-information class)))
 
-             ;; try it as a class in the source
+             ;; try it as a class
              (csense-get-class-information symbol)
 
              (error "Don't know what '%s' is." symbol))))))))
@@ -343,6 +344,9 @@ container, and return t."
              result))
          csense-cs-source-files)
 
+   ;; maybe it's a fully qualified class name in an assembly
+   (gethash class csense-cs-type-hash)
+
    ;; try usings
    (let (class-info)
      (save-excursion
@@ -352,9 +356,13 @@ container, and return t."
                                           "using" (+ space) 
                                           (group (+ nonl)) (* space) ";")
                                       nil t))
-         (setq class-info (gethash (concat (match-string-no-properties 1) 
-                                           "." class)
-                                   csense-cs-type-hash))))
+         (let ((class-name (concat (match-string-no-properties 1) "." class)))
+           ;; handle string and object aliases
+           (if (equal class-name "System.string")
+               (setq class-name "System.String")
+             (if (equal class-name "System.object")
+                 (setq class-name "System.Object")))
+           (setq class-info (gethash class-name csense-cs-type-hash)))))
      class-info)
 
    (error "Class '%s' not found." class)))
