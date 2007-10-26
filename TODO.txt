@@ -4,9 +4,6 @@ Things to do
 For release
 -----------
 
-- for functions, variables the definition should be shown instead of
-  the type
-
 - handling scopes (foreach, using, catch) within functions
 
 - handling scopes without blocks (foreach, for, etc)

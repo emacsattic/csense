@@ -125,17 +125,13 @@ directory then it will be used as well.")
     (message "Done.")))
 
 
-(defun csense-cs-get-information-for-symbol-at-point ()
-  "Return available information for symbol at point."
-  (csense-cs-get-type-of-symbol-at-point))
-
-
 (defun csense-cs-get-completions-for-symbol-at-point ()
   "Return list of possible completions for symbol at point."
   (save-excursion
     (skip-syntax-backward "w_")
     (if (csense-cs-backward-to-container)
-        (plist-get (csense-cs-get-type-of-symbol-at-point) 'members)
+        (csense-get-members-for-symbol 
+         (csense-cs-get-information-for-symbol-at-point))
       (csense-cs-get-local-symbol-information-at-point))))
 
 
@@ -278,7 +274,7 @@ to be returned."
     (scan-error)))
 
 
-(defun csense-cs-get-type-of-symbol-at-point ()  
+(defun csense-cs-get-information-for-symbol-at-point ()  
   "Return the type of symbol at point or nil if no symbol is found."
   (let ((end (save-excursion
                (skip-syntax-forward "w_")
@@ -289,27 +285,35 @@ to be returned."
           (if (csense-cs-backward-to-container)
               (or (some (lambda (symbol-info)
                           (if (equal (plist-get symbol-info 'name) symbol)
-                              (csense-get-class-information
-                               (plist-get symbol-info 'type))))
+                              symbol-info))
 
-                        (plist-get (csense-cs-get-type-of-symbol-at-point)
-                                   'members))
+                        (csense-get-members-for-symbol
+                         (csense-cs-get-information-for-symbol-at-point)))
 
                   (error "Don't know what '%s' is." symbol))
 
             (or 
              ;; try it as a local symbol
-             (let ((class (some (lambda (symbol-info)
-                                  (if (equal (plist-get symbol-info 'name) symbol)
-                                      (plist-get symbol-info 'type)))
-                                (csense-cs-get-local-symbol-information-at-point))))
-               (if class
-                   (csense-get-class-information class)))
+             (some (lambda (symbol-info)
+                     (if (equal (plist-get symbol-info 'name) symbol)
+                         symbol-info))
+                   (csense-cs-get-local-symbol-information-at-point))
 
-             ;; try it as a class
-             (csense-get-class-information symbol)
+             ;; let's say it's a class
+             (csense-get-class-information symbol))))))))
 
-             (error "Don't know what '%s' is." symbol))))))))
+
+(defun csense-get-members-for-symbol (symbol-info)
+  "Return list of members for symbol described by SYMBOL-INFO."
+  (or 
+   ;; it's a class itself
+   (plist-get symbol-info 'members)
+
+   ;; it's a variable or a method, so look up
+   ;; class information first and then members
+   (plist-get (csense-get-class-information
+               (plist-get symbol-info 'type))
+              'members)))  
 
 
 (defun csense-cs-backward-to-container ()
