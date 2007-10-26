@@ -119,7 +119,7 @@ directory then it will be used as well.")
 (defun csense-cs-doc-formatter-for-csense-frontend ()
   "Format documentation for the CSense frontend."
   (let ((info (csense-cs-get-information-for-symbol-at-point)))
-    (if info
+    (if (plist-get info 'members)
         (plist-put info
                    'doc (concat "class " 
                                 (plist-get info 'name)
@@ -127,8 +127,9 @@ directory then it will be used as well.")
                                 (let ((doc (plist-get info 'doc)))
                                   (if doc
                                       doc
-                                    "No documentation")))))))
-
+                                    "No documentation"))))
+      info)))
+                                    
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
   "Return list of possible completions for symbol at point."
