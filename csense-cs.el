@@ -110,7 +110,17 @@ directory then it will be used as well.")
 
         (goto-char (point-min))
 
-        (dolist (type (read (current-buffer)))
+        (dolist (type 
+                 (condition-case nil
+                     (read (current-buffer))
+                   (error (message (concat "Couldn't parse the following "
+                                           "line (position: %s): %s ")
+                                   (- (point) (line-beginning-position))
+                                   (buffer-substring (line-beginning-position)
+                                                     (line-end-position)))
+                          (error (concat "Couldn't read information from "
+                                         "assembly. See the *Messages* buffer "
+                                         "for details.")))))
           (puthash (plist-get type 'name) type csense-cs-type-hash))))
 
     (message "Done.")))
@@ -128,7 +138,15 @@ directory then it will be used as well.")
                                   (if doc
                                       doc
                                     "No documentation"))))
-      info)))
+      (let ((doc (plist-get info 'doc)))
+        (if doc
+            (plist-put info
+                       'doc (concat (plist-get info 'type)
+                                    " "
+                                    (plist-get info 'name)
+                                    "\n\n"
+                                    doc))
+          info)))))
                                     
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
