@@ -369,9 +369,9 @@ container, and return t."
 
    ;; maybe it's a fully qualified class name in an assembly
    ;;
-   ;; copy list is done, so that destructive operations on the result
+   ;; copy tree is done, so that destructive operations on the result
    ;; do not affect the hash contents
-   (copy-list (gethash class csense-cs-type-hash))
+   (copy-tree (gethash class csense-cs-type-hash))
 
    ;; try usings
    (let (class-info)
@@ -388,10 +388,10 @@ container, and return t."
                (setq class-name "System.String")
              (if (equal class-name "System.object")
                  (setq class-name "System.Object")))
-           ;; copy list is done, so that destructive operations on the result
+           ;; copy tree is done, so that destructive operations on the result
            ;; do not affect the hash contents
            (setq class-info 
-                 (copy-list (gethash class-name csense-cs-type-hash))))))
+                 (copy-tree (gethash class-name csense-cs-type-hash))))))
      class-info)
 
    (error "Class '%s' not found. Are you perhaps missing an assembly?" class)))
