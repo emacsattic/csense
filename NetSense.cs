@@ -22,6 +22,7 @@ using System.Reflection;
 using System.Diagnostics;
 using System.Data;
 using System.Xml;
+using System.Text.RegularExpressions;
 
 namespace netsense
 {
@@ -39,6 +40,7 @@ namespace netsense
 			if (File.Exists(xml))
 			{
 				docs = new Dictionary<string, string>();
+				Regex r = new Regex(@"(.+)\(.*\)");
 				
 				using (XmlReader reader = XmlReader.Create(xml))
 				{
@@ -47,7 +49,17 @@ namespace netsense
 					{
 						string name = reader.GetAttribute("name");
 						if (reader.ReadToDescendant("summary"))
-							docs.Add(name, reader.ReadInnerXml());
+						{
+							Match m = r.Match(name);
+							if (m.Success)
+								name = m.Groups[1].ToString();
+							try
+							{
+								docs.Add(name, reader.ReadInnerXml());
+							}
+							catch (ArgumentException)
+							{}
+						}
 					}
 				}
 			}
@@ -59,8 +71,8 @@ namespace netsense
 
 				foreach (Type t in asm.GetTypes())
 				{
-//					if (t.FullName != "System.Object")
-//						continue;
+					//if (t.FullName != "System.String")
+					//	continue;
 					
 					Console.WriteLine("(name \"" + t.FullName + "\"");
 					
@@ -68,7 +80,7 @@ namespace netsense
 					{
 						string doc;
 						if (docs.TryGetValue("T:" + t.FullName, out doc))
-							Console.WriteLine("\tdoc \"" + doc + "\"");
+							Console.WriteLine("\tdoc \"" + qoute(doc) + "\"");
 					}
 
 					Console.WriteLine("\tmembers (");
@@ -90,8 +102,18 @@ namespace netsense
 								break;
 						}
 						
-						Console.WriteLine("\t\t(name \"" + member.Name + "\" " +
-						                  "type \"" + type + "\")");
+						Console.Write("\t\t(name \"" + member.Name + "\" " +
+						              "type \"" + type + "\" ");
+						
+						if (docs != null)
+						{
+							string doc;
+							if (docs.TryGetValue("M:" + t.FullName + "." + member.Name, out doc) ||
+							    docs.TryGetValue("P:" + t.FullName + "." + member.Name, out doc))
+								Console.WriteLine("doc \"" + qoute(doc) + "\"");
+						}
+						
+						Console.WriteLine(")");
 					}
 
 					Console.WriteLine("\t)");
@@ -105,6 +127,11 @@ namespace netsense
 			}
 
 			Console.ReadLine();
+		}
+
+		static string qoute(string text)
+		{
+			return text.Replace(@"\", @"\\").Replace("\"", "\\\"");
 		}
 	}
 }
