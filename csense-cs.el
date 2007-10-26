@@ -92,7 +92,7 @@ directory then it will be used as well.")
   "Setup CodeSense for the current C# buffer."
   (csense-cs-initialize)
   (setq csense-information-function 
-        'csense-cs-get-information-for-symbol-at-point)
+        'csense-cs-doc-formatter-for-csense-frontend)
   (setq csense-completion-function 
         'csense-cs-get-completions-for-symbol-at-point))
 
@@ -111,18 +111,23 @@ directory then it will be used as well.")
         (goto-char (point-min))
 
         (dolist (type (read (current-buffer)))
-          (puthash (plist-get type 'name) 
-                   (plist-put type 
-                              'doc (concat "class " 
-                                           (plist-get type 'name)
-                                           "\n\n"
-                                           (let ((doc (plist-get type 'doc)))
-                                             (if doc
-                                                 doc
-                                               "No documentation"))))
-                   csense-cs-type-hash))))
+          (puthash (plist-get type 'name) type csense-cs-type-hash))))
 
     (message "Done.")))
+
+
+(defun csense-cs-doc-formatter-for-csense-frontend ()
+  "Format documentation for the CSense frontend."
+  (let ((info (csense-cs-get-information-for-symbol-at-point)))
+    (if info
+        (plist-put info
+                   'doc (concat "class " 
+                                (plist-get info 'name)
+                                "\n\n"
+                                (let ((doc (plist-get info 'doc)))
+                                  (if doc
+                                      doc
+                                    "No documentation")))))))
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
@@ -363,7 +368,10 @@ container, and return t."
          csense-cs-source-files)
 
    ;; maybe it's a fully qualified class name in an assembly
-   (gethash class csense-cs-type-hash)
+   ;;
+   ;; copy list is done, so that destructive operations on the result
+   ;; do not affect the hash contents
+   (copy-list (gethash class csense-cs-type-hash))
 
    ;; try usings
    (let (class-info)
@@ -380,7 +388,10 @@ container, and return t."
                (setq class-name "System.String")
              (if (equal class-name "System.object")
                  (setq class-name "System.Object")))
-           (setq class-info (gethash class-name csense-cs-type-hash)))))
+           ;; copy list is done, so that destructive operations on the result
+           ;; do not affect the hash contents
+           (setq class-info 
+                 (copy-list (gethash class-name csense-cs-type-hash))))))
      class-info)
 
    (error "Class '%s' not found. Are you perhaps missing an assembly?" class)))
