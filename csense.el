@@ -71,9 +71,7 @@ must be a plist with the follwing values:")
                         (let ((file (plist-get info 'file)))
                           (if file
                               (csense-get-code-context file 
-                                                       (plist-get info 'pos))))
-
-                        "No documentation")))
+                                                       (plist-get info 'pos)))))))
           (if doc
               (csense-show-popup-help (csense-wrap-text doc))
             (pp info)))

@@ -111,7 +111,16 @@ directory then it will be used as well.")
         (goto-char (point-min))
 
         (dolist (type (read (current-buffer)))
-          (puthash (plist-get type 'name) type csense-cs-type-hash))))
+          (puthash (plist-get type 'name) 
+                   (plist-put type 
+                              'doc (concat "class " 
+                                           (plist-get type 'name)
+                                           "\n\n"
+                                           (let ((doc (plist-get type 'doc)))
+                                             (if doc
+                                                 doc
+                                               "No documentation"))))
+                   csense-cs-type-hash))))
 
     (message "Done.")))
 
