@@ -81,10 +81,10 @@ must be a plist with the follwing values:")
                           (if file
                               (csense-get-code-context file 
                                                        (plist-get info 'pos)))))))
-          (if doc
-              (csense-show-popup-help 
-               (csense-color-header (csense-wrap-text doc)))
-            (pp info)))
+          (csense-show-popup-help 
+           (csense-color-header (if doc
+                                    (csense-wrap-text doc)
+                                  "No documentation."))))
 
       (pp (funcall csense-completion-function)))))
 
