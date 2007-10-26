@@ -46,6 +46,15 @@ must be a plist with the follwing values:")
 (defvar csense-max-tooltip-line-length 70
   "Maximum length of lines in tooltips.")
 
+
+(defvar csense-tooltip-header-color "moccasin"
+  "Color of header lines in tooltips.")
+
+
+(defvar csense-tooltip-current-line-color "honeydew2"
+  "Color of the current line in tooltips for which information is shown.")
+
+
 ;;;----------------------------------------------------------------------------
 
 (defun csense-setup ()
@@ -73,7 +82,8 @@ must be a plist with the follwing values:")
                               (csense-get-code-context file 
                                                        (plist-get info 'pos)))))))
           (if doc
-              (csense-show-popup-help (csense-wrap-text doc))
+              (csense-show-popup-help 
+               (csense-color-header (csense-wrap-text doc)))
             (pp info)))
 
       (pp (funcall csense-completion-function)))))
@@ -165,12 +175,8 @@ and WIDTH in characters."
       (save-excursion
         (goto-char pos)
         (setq result
-              (concat (csense-color-string-background
-                       (concat
-                        (csense-truncate-path (buffer-file-name))
-                        ":\n")
-                       "moccasin")
-                      "\n"
+              (concat (csense-truncate-path (buffer-file-name))
+                      ":\n\n"
                       (buffer-substring (save-excursion
                                           (forward-line -5)
                                           (point))
@@ -178,7 +184,7 @@ and WIDTH in characters."
                       (csense-color-string-background
                        (buffer-substring (line-beginning-position)
                                          (1+ (line-end-position)))
-                       "honeydew2")
+                       csense-tooltip-current-line-color)
                       (buffer-substring (1+ (line-end-position))
                                         (save-excursion
                                           (forward-line +5)
@@ -234,6 +240,19 @@ beginning."
           (setq components (cdr components)))
 
         (concat ".../" path)))))
+
+
+(defun csense-color-header (str)
+  "Color first line of STR with color
+`csense-tooltip-header-color'."
+  (let ((pos (string-match "\n" str)))
+    (if (not pos)
+        str
+
+      (concat (csense-color-string-background
+               (substring str 0 (1+ pos))
+               csense-tooltip-header-color)
+              (substring str (1+ pos))))))
 
 
 (provide 'csense)
