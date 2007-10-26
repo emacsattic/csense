@@ -4,6 +4,10 @@ Things to do
 For release
 -----------
 
+- handle references in doc
+
+- function template (better word, signature?)
+
 - handling scopes (foreach, using, catch) within functions
 
 - handling scopes without blocks (foreach, for, etc)
@@ -23,6 +27,8 @@ For release
 - handle inherited members 
 
 - caching
+
+- private fields shouldn't be returned for external assemblies
 
 
 Someday
