@@ -66,7 +66,14 @@ must be a plist with the follwing values:")
              (or (eq char-syntax-after ?w)
                  (eq char-syntax-after ?_)))
         (let* ((info (funcall csense-information-function))
-               (doc (plist-get info 'doc)))
+               (doc (or (plist-get info 'doc)
+
+                        (let ((file (plist-get info 'file)))
+                          (if file
+                              (csense-get-code-context file 
+                                                       (plist-get info 'pos))))
+
+                        "No documentation")))
           (if doc
               (csense-show-popup-help (csense-wrap-text doc))
             (pp info)))
@@ -146,6 +153,89 @@ and WIDTH in characters."
                (incf count)))
         (incf pos))))
   text)
+
+
+(defun csense-get-code-context (file pos)
+  "Return colored line context from FILE around POS."
+  (let* ((buffer (get-file-buffer file))
+         result kill)
+    (unless buffer
+      (setq buffer (find-file-noselect file))
+      (setq kill t))
+
+    (with-current-buffer buffer
+      (save-excursion
+        (goto-char pos)
+        (setq result
+              (concat (csense-color-string-background
+                       (concat
+                        (csense-truncate-path (buffer-file-name))
+                        ":\n")
+                       "moccasin")
+                      "\n"
+                      (buffer-substring (save-excursion
+                                          (forward-line -5)
+                                          (point))
+                                        (line-beginning-position))
+                      (csense-color-string-background
+                       (buffer-substring (line-beginning-position)
+                                         (1+ (line-end-position)))
+                       "honeydew2")
+                      (buffer-substring (1+ (line-end-position))
+                                        (save-excursion
+                                          (forward-line +5)
+                                          (point)))))))
+
+    (if kill
+        (kill-buffer buffer))
+
+    result))
+
+
+(defun csense-color-string-background (oldstr color)
+  "Color OLDSTR with COLOR and return it."
+  (let ((prevpos 0)
+        pos 
+        (str (copy-sequence oldstr))
+        (continue t))
+    (while continue
+      (setq pos (next-single-property-change prevpos 'face str))
+      (unless pos
+        (setq pos (length str))
+        (setq continue nil))
+              
+      (let ((face (get-text-property prevpos 'face str)))
+        (put-text-property prevpos pos 'face
+                           (list (cons 'background-color color)
+                                 (cons 'foreground-color (if face
+                                                             (face-foreground face))))
+                           str))
+      (setq prevpos pos))
+    str))
+
+
+(defun csense-truncate-path (path &optional length)
+  "If PATH is too long truncate some components from the
+beginning."
+  (let ((maxlength (if length
+                       length
+                     70)))
+    (if (<= (length path) maxlength)
+        path
+
+      (let* ((components (reverse (split-string path "/")))
+             (tmppath (car components)))
+        (setq components (cdr components))
+
+        (while (and components
+                    (< (length tmppath) maxlength))
+          (setq path tmppath)
+          (setq tmppath (concat (car components)
+                                "/"
+                                tmppath))
+          (setq components (cdr components)))
+
+        (concat ".../" path)))))
 
 
 (provide 'csense)

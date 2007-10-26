@@ -335,7 +335,8 @@ container, and return t."
                                           nil t)
                    ;; position the cursor for csense-cs-get-members
                    ;; FIXME: it should be done some other way, it's clumsy
-                   (search-forward "{")
+                   (save-match-data
+                     (search-forward "{"))
                    (backward-char)
                    (setq result (list 'name class
                                       'file file
