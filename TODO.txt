@@ -41,3 +41,4 @@ Someday
 - using explicit namespaces as prefix (e.g. System.Console after
   "using System;")
 
+- skip stuff in comments
