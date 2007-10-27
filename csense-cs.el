@@ -436,40 +436,55 @@ The plist values:
 "
   (save-excursion
     (let (result)
-      (while (let ((open (save-excursion
-                           (re-search-backward "{" nil t)))
-                   (close (save-excursion
-                            (re-search-backward "}" nil t))))
-               (if open
-                   (if (and close 
-                            (> close open))
-                       (progn 
-                         (goto-char (1+ close))
-                         (backward-sexp)
-                         ;; search further
-                         t)
+      (csense-cs-up-scopes
+       (lambda ()         
+         (if (save-excursion
+               (forward-line -1)
+               (looking-at (eval `(rx (* not-newline)
+                                      "class" (+ space)
+                                      ,@csense-cs-symbol-regexp))))
+             (progn
+               (setq result (plist-put result 'class-begin open))
+               (setq result (plist-put result 'class-name
+                                       (csense-cs-get-match-result
+                                        (list csense-cs-symbol-regexp))))
+               ;; class found, stop search
+               nil)
 
-                     (goto-char open)
-                     (forward-line -1)
-                     (if (looking-at (eval `(rx (* not-newline)
-                                                "class" (+ space)
-                                                ,@csense-cs-symbol-regexp)))
-                         (progn
-                           (setq result (plist-put result 'class-begin open))
-                           (setq result 
-                                 (plist-put result 'class-name
-                                            (csense-cs-get-match-result
-                                             (list csense-cs-symbol-regexp))))
-                           nil)
-                       (setq result (plist-put result 'func-begin open))
-                       ;; search further for containing class
-                       t))
+           (setq result (plist-put result 'func-begin (point)))
+           ;; search further for containing class
+           t)))
 
-                 ;; containing class not found
-                 ;; terminate the search
-                 (setq result nil))))
       (if (plist-get result 'func-begin)
           result))))
+
+
+(defun csense-cs-up-scopes (callback)
+  "Go up scopes from point invoking CALLBACK every time the
+beginning of a new scope is found.
+
+The climbing up of scopes continues if CALLBACK returns non-nil."
+  (save-excursion
+    (while (let ((open (save-excursion
+                         (re-search-backward "{" nil t)))
+                 (close (save-excursion
+                          (re-search-backward "}" nil t))))
+             (if open
+                 (if (and close 
+                          (> close open))
+                     (progn 
+                       (goto-char (1+ close))
+                       (backward-sexp)
+                       ;; it's a closing parent on the same level,
+                       ;; so search further
+                       t)
+
+                   (goto-char open)
+                   (funcall callback))
+
+               ;; no more parens
+               ;; terminate the search
+               nil)))))
 
 
 (defun csense-cs-get-typed-symbol-regexp-result ()
