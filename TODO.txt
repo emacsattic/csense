@@ -18,8 +18,6 @@ For release
 
 - generics
 
-- using with prefix
-
 - arrays
 
 - honor protection levels 
@@ -39,3 +37,7 @@ Someday
 - construtor initializers : base()...
 
 - creating objects
+
+- using explicit namespaces as prefix (e.g. System.Console after
+  "using System;")
+
