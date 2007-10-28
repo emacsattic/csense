@@ -4,8 +4,6 @@ Things to do
 For release
 -----------
 
-- handle references in doc
-
 - function template (better word, signature?)
 
 - handling scopes without blocks (foreach, for, etc)
@@ -26,6 +24,9 @@ For release
 
 - private fields shouldn't be returned for external assemblies
 
+- bold references in doc
+
+
 
 Someday
 -------
@@ -40,3 +41,8 @@ Someday
   "using System;")
 
 - skip stuff in comments
+
+- add aliases for displaying common classes
+
+- shortened class names for symbols in the same assembly in documentation
+
