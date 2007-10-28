@@ -196,15 +196,23 @@ the function."
 
              ;; if it's a parent scope and we're not at the beginning
              ;; of the function yet then check if it's a control
-             ;; structure which binds some variable
+             ;; structure which binds some variable (there can be more
+             ;; than one, one after the other)
              (save-excursion               
-               (with-syntax-table csense-cs-newline-whitespace-syntax-table
-                 (skip-syntax-backward " "))
-               (when (eq (char-before) ?\))
-                 (backward-sexp)                 
-                 (if (looking-at (eval `(rx  "(" (* space) 
-                                             ,@csense-cs-typed-symbol-regexp)))
-                     (push (csense-cs-get-typed-symbol-regexp-result) result)))))
+               (while (and 
+                       (progn
+                         (with-syntax-table 
+                             csense-cs-newline-whitespace-syntax-table
+                           (skip-syntax-backward " "))
+                         (eq (char-before) ?\)))
+                       (progn
+                         (backward-sexp)
+                         (looking-at (eval `(rx  "(" (* space) 
+                                                 ,@csense-cs-typed-symbol-regexp))))
+                       (progn
+                         (push (csense-cs-get-typed-symbol-regexp-result) result)
+                         (backward-word)
+                         t)))))
 
            (while (re-search-forward
                    (eval `(rx  ,@csense-cs-typed-symbol-regexp
