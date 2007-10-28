@@ -136,25 +136,25 @@ directory then it will be used as well.")
 (defun csense-cs-doc-formatter-for-csense-frontend ()
   "Format documentation for the CSense frontend."
   (let ((info (csense-cs-get-information-for-symbol-at-point)))
-    (if (plist-get info 'members)
-        (plist-put info
-                   'doc (concat "class " 
-                                (plist-get info 'name)
-                                "\n\n"
-                                (let ((doc (plist-get info 'doc)))
-                                  (if doc
-                                      doc
-                                    "No documentation"))))
+    ;; if it was found in the sources then the csense fronted will
+    ;; take care of displaying the relevant parts of the source code
+    (if (plist-get info 'file)
+        info
+
       (let ((doc (plist-get info 'doc)))
-        (if doc
-            (plist-put info
-                       'doc (concat (plist-get info 'type)
-                                    " "
-                                    (plist-get info 'name)
-                                    "\n\n"
-                                    doc))
-          info)))))
-                                    
+        (plist-put info
+                   'doc (concat (if (plist-get info 'members)
+                                    (concat "class " 
+                                            (plist-get info 'name))
+
+                                  (concat (plist-get info 'type)
+                                          " "
+                                          (plist-get info 'name)))
+                                "\n\n"
+                                (if doc
+                                    doc
+                                  "No documentation")))))))
+
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
   "Return list of possible completions for symbol at point."
