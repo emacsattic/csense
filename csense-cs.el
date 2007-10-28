@@ -152,12 +152,15 @@ directory then it will be used as well.")
                                           (plist-get info 'name)))
                                 "\n\n"
                                 (if doc
-                                    ;; remove references
-                                    (replace-regexp-in-string 
-                                     (rx "<see cref=\"" nonl ":" 
-                                         (group (*? nonl)) "\"></see>")
-                                     "\\1"
-                                     doc)
+                                    ;; remove generics
+                                    (replace-regexp-in-string
+                                     "`[0-9]+" ""
+                                     ;; remove references
+                                     (replace-regexp-in-string 
+                                      (rx "<see cref=\"" nonl ":" 
+                                          (group (*? nonl)) "\"></see>")
+                                      "\\1"
+                                      doc))
                                   "No documentation")))))))
 
 
@@ -399,6 +402,9 @@ container, and return t."
 
 (defun csense-get-class-information (class)
   "Look up and return information about CLASS. See Assumptions."
+  ;; strip type from generics
+  (setq class (replace-regexp-in-string "<.*>" "" class))
+
   (or 
    ;; try to search for it in the source files
    (some (lambda (file)

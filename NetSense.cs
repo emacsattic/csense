@@ -53,6 +53,7 @@ namespace netsense
 							Match m = r.Match(name);
 							if (m.Success)
 								name = m.Groups[1].ToString();
+							
 							try
 							{
 								docs.Add(name, reader.ReadInnerXml());
@@ -71,10 +72,13 @@ namespace netsense
 
 				foreach (Type t in asm.GetTypes())
 				{
-					//if (t.FullName != "System.String")
+					//if (t.FullName != "System.Collections.Generic.List`1")
 					//	continue;
 					
-					Console.WriteLine("(name \"" + t.FullName + "\"");
+					Console.WriteLine("(name \"" +
+					                  // remove generic tag from end of class name if any
+					                  Regex.Replace(t.FullName, "`[0-9]+", "")
+					                  + "\"");
 					
 					if (docs != null)
 					{

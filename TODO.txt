@@ -8,8 +8,6 @@ For release
 
 - handling scopes without blocks (foreach, for, etc)
 
-- generics
-
 - arrays
 
 - honor protection levels 
@@ -38,10 +36,11 @@ Someday
 - using explicit namespaces as prefix (e.g. System.Console after
   "using System;")
 
-- skip stuff in comments
+- skip stuff in comments and strings
 
 - add aliases for displaying common classes
 
 - shortened class names for symbols in the same assembly in documentation
 
+- completion for other places too (e.g. after = new ...)
 
