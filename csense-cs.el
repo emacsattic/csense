@@ -1,4 +1,4 @@
-;;; csense-cs.el --- Code sense backend for C#
+;;; csense-cs.el --- Opportunistic code sense backend for C#
 
 ;; Copyright (C) 2007  
 
@@ -20,10 +20,23 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
-
+;;;
+;;; The parser here takes a completely opportunistic approach. It
+;;; doesn't aim completeness or correctness, it simply does what it
+;;; needs to do by taking shortcuts and making outrageous assumptions.
+;;;
+;;; It doesn't do the proper thing in all the cases, it simply does a
+;;; good enough job in most of the cases.
+;;;
+;;; Below are the list of assummptions made. These simplifies things
+;;; and although they could be implemented properly, it is defered
+;;; until I actually need them to work correctly.
+;;;
+;;;
 ;;; Assumptions:
 ;;;   
-;;;  - In the project each class has a unique name.
+;;;  - In the project each class has a unique name regardless of
+;;;    namespaces.
 ;;;
 
 
