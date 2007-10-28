@@ -353,7 +353,14 @@ to be returned."
 
                   (error "Don't know what '%s' is." symbol))
 
-            (or 
+            (or
+             ;; handle this
+             (if (equal symbol "this")
+                 (let ((function-info (csense-cs-get-function-info)))
+                   (if function-info
+                       (csense-get-class-information 
+                        (plist-get function-info 'class-name)))))
+
              ;; try it as a local symbol
              (some (lambda (symbol-info)
                      (if (equal (plist-get symbol-info 'name) symbol)
