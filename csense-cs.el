@@ -404,9 +404,10 @@ container, and return t."
              (with-current-buffer buffer
                (save-excursion
                  (goto-char (point-min))
-                 (when (re-search-forward (eval `(rx "class" (+ space)
-                                                     (group ,class)))
-                                          nil t)
+                 (when (re-search-forward 
+                        (eval `(rx "class" (+ space)
+                                   symbol-start (group ,class) symbol-end))
+                        nil t)
                    ;; position the cursor for csense-cs-get-members
                    ;; FIXME: it should be done some other way, it's clumsy
                    (save-match-data
