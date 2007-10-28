@@ -30,6 +30,7 @@
 ;;; Code:
 
 (require 'csense)
+(require 'csharp-mode)
 (require 'rx)
 
 
@@ -79,6 +80,12 @@ directory then it will be used as well.")
 
 (defvar csense-cs-type-hash (make-hash-table :test 'equal)
   "Hash containing known type information.")
+
+
+(defvar csense-cs-newline-whitespace-syntax-table
+  (make-syntax-table csharp-mode-syntax-table))
+
+(modify-syntax-entry ?\n " " csense-cs-newline-whitespace-syntax-table)
 
 
 (defun csense-cs-setup-csense-frontend ()
@@ -170,23 +177,40 @@ directory then it will be used as well.")
 
 
 (defun csense-cs-get-local-variables (func-info)
-  "Return a list of variables for the current function."
+  "Return a list of variables visible in the current scope within
+the function."
   (let ((funbegin (plist-get func-info 'func-begin))
+        (pos (point))
         result)
-    (dolist (regexp (list 
-                     ;; foreach
-                     (eval `(rx  "foreach" (* space) 
-                                 "(" (* space) ,@csense-cs-typed-symbol-regexp
-                                 (+ space) "in"))
-                     ;; local variable
-                     (eval `(rx  ,@csense-cs-typed-symbol-regexp
-                                 (* space) (or "=" ";")))))
-      (save-excursion
-        (while (re-search-backward regexp funbegin t)
-          (push (csense-cs-get-typed-symbol-regexp-result) result))))
-
-    ;; function arguments
     (save-excursion
+      (csense-cs-up-scopes 
+       (lambda (type)
+         (save-excursion
+           (if (eq type 'sibling)
+               (forward-sexp)
+
+             ;; if it's a parent scope and we're not at the beginning
+             ;; of the function yet then check if it's a control
+             ;; structure which binds some variable
+             (save-excursion               
+               (with-syntax-table csense-cs-newline-whitespace-syntax-table
+                 (skip-syntax-backward " "))
+               (when (eq (char-before) ?\))
+                 (backward-sexp)                 
+                 (if (looking-at (eval `(rx  "(" (* space) 
+                                             ,@csense-cs-typed-symbol-regexp)))
+                     (push (csense-cs-get-typed-symbol-regexp-result) result)))))
+
+           (while (re-search-forward
+                   (eval `(rx  ,@csense-cs-typed-symbol-regexp
+                               (* space) (or "=" ";")))
+                   pos t)
+             (push (csense-cs-get-typed-symbol-regexp-result) result)))
+             
+           (setq pos (point))
+           (> (point) funbegin)))
+
+      ;; function arguments
       (goto-char funbegin)
       (backward-sexp)
       (let ((regexp (eval `(rx ,@csense-cs-typed-symbol-regexp
@@ -437,23 +461,27 @@ The plist values:
   (save-excursion
     (let (result)
       (csense-cs-up-scopes
-       (lambda ()         
-         (if (save-excursion
-               (forward-line -1)
-               (looking-at (eval `(rx (* not-newline)
-                                      "class" (+ space)
-                                      ,@csense-cs-symbol-regexp))))
-             (progn
-               (setq result (plist-put result 'class-begin open))
-               (setq result (plist-put result 'class-name
-                                       (csense-cs-get-match-result
-                                        (list csense-cs-symbol-regexp))))
-               ;; class found, stop search
-               nil)
+       (lambda (type)
+         (if (eq type 'sibling)
+             ;; we're not interested in sibling scopes
+             t
 
-           (setq result (plist-put result 'func-begin (point)))
-           ;; search further for containing class
-           t)))
+           (if (save-excursion
+                 (forward-line -1)
+                 (looking-at (eval `(rx (* not-newline)
+                                        "class" (+ space)
+                                        ,@csense-cs-symbol-regexp))))
+               (progn
+                 (setq result (plist-put result 'class-begin open))
+                 (setq result (plist-put result 'class-name
+                                         (csense-cs-get-match-result
+                                          (list csense-cs-symbol-regexp))))
+                 ;; class found, stop search
+                 nil)
+
+             (setq result (plist-put result 'func-begin (point)))
+             ;; search further for containing class
+             t))))
 
       (if (plist-get result 'func-begin)
           result))))
@@ -463,7 +491,10 @@ The plist values:
   "Go up scopes from point invoking CALLBACK every time the
 beginning of a new scope is found.
 
-The climbing up of scopes continues if CALLBACK returns non-nil."
+CALLBACK is called with one argument which is the symbol `parent'
+or `sibling' indicating the type of scope found,
+
+The traversing of scopes continues if CALLBACK returns non-nil."
   (save-excursion
     (while (let ((open (save-excursion
                          (re-search-backward "{" nil t)))
@@ -475,12 +506,10 @@ The climbing up of scopes continues if CALLBACK returns non-nil."
                      (progn 
                        (goto-char (1+ close))
                        (backward-sexp)
-                       ;; it's a closing parent on the same level,
-                       ;; so search further
-                       t)
+                       (funcall callback 'sibling))
 
                    (goto-char open)
-                   (funcall callback))
+                   (funcall callback 'parent))
 
                ;; no more parens
                ;; terminate the search

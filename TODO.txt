@@ -8,8 +8,6 @@ For release
 
 - function template (better word, signature?)
 
-- handling scopes (foreach, using, catch) within functions
-
 - handling scopes without blocks (foreach, for, etc)
 
 - handling this 
