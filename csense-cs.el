@@ -152,7 +152,12 @@ directory then it will be used as well.")
                                           (plist-get info 'name)))
                                 "\n\n"
                                 (if doc
-                                    doc
+                                    ;; remove references
+                                    (replace-regexp-in-string 
+                                     (rx "<see cref=\"" nonl ":" 
+                                         (group (*? nonl)) "\"></see>")
+                                     "\\1"
+                                     doc)
                                   "No documentation")))))))
 
 
