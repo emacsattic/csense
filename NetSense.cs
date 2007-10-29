@@ -102,12 +102,14 @@ namespace netsense
 									string comma = signature == "" ? "" : ",";
 									signature += comma + param.ParameterType;
 
-									extra += "\t\t\tname \"" + param.Name +
-										"\" type \"" + param.ParameterType + "\"\n";
+									extra += "\t\t\t(name \"" + param.Name +
+										"\" type \"" + param.ParameterType + "\")\n";
 								}
 								
 								if (extra != "")
-									extra = "\n\t\tparams (\n" + extra + "\t\t\t)\n\t\t";
+									extra = "\n\t\tparams (\n" + extra + "\t\t\t)";
+								
+								extra += "\n\t\twhat method\n\t\t";
 								
 								signature = "M:" + t.FullName + "." + member.Name +
 									(signature == "" ? "" : "(" + signature + ")");

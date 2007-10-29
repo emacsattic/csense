@@ -26,6 +26,9 @@ For release
 
 - check all forward/backward-sexps for error checking
 
+- test what happens if header is too long and it is wrapped into more
+  lines
+
 
 Someday
 -------

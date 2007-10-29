@@ -184,9 +184,22 @@ directory then it will be used as well.")
                                  (concat "class " 
                                          (plist-get info 'name))
 
-                               (concat (plist-get info 'type)
-                                       " "
-                                       (plist-get info 'name)))
+                               ;; class member
+                               (concat 
+                                (plist-get info 'type)
+                                " "
+                                (plist-get info 'name)
+
+                                (if (eq (plist-get info 'what) 'method)
+                                    (concat "("
+                                            (mapconcat 
+                                             (lambda (param)
+                                               (concat (plist-get param 'type)
+                                                       " "
+                                                       (plist-get param 'name)))
+                                             (plist-get info 'params)
+                                             ", ")
+                                            ")"))))
                              "\n\n"
                              (if doc
                                  ;; remove generics
