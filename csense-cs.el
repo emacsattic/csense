@@ -28,7 +28,7 @@
 ;;; It doesn't do the proper thing in all the cases, it simply does a
 ;;; good enough job in most of the cases.
 ;;;
-;;; Below are the list of assummptions made. These simplifies things
+;;; Below are the list of assummptions made. These simplify things
 ;;; and although they could be implemented properly, it is defered
 ;;; until I actually need them to work correctly.
 ;;;
