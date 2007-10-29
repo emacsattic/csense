@@ -148,36 +148,49 @@ directory then it will be used as well.")
 
 (defun csense-cs-doc-formatter-for-csense-frontend ()
   "Format documentation for the CSense frontend."
-  (let* ((info (csense-cs-get-information-for-symbol-at-point))
-         (file (plist-get info 'file)))
-    (csense-color-header 
-     (csense-wrap-text
-      ;; if it was found in the sources then show the relevant part of
-      ;; the source code
-      (if file
-          (csense-get-code-context file (plist-get info 'pos))
+  (let ((info (csense-cs-get-information-at-point)))
+    (if info
+        (csense-color-header 
+         (csense-wrap-text
+          ;; if it was found in the sources then show the relevant part of
+          ;; the source code
+          (if (plist-get info 'file)
+              (csense-get-code-context (plist-get info 'file)
+                                       (plist-get info 'pos))
 
-        ;; othewise show the retrieved documentation
-        (let ((doc (plist-get info 'doc)))
-          (concat (if (plist-get info 'members)
-                      (concat "class " 
-                              (plist-get info 'name))
+            ;; othewise show the retrieved documentation
+            (let ((doc (plist-get info 'doc)))
+              (concat (if (plist-get info 'members)
+                          (concat "class " 
+                                  (plist-get info 'name))
 
-                    (concat (plist-get info 'type)
-                            " "
-                            (plist-get info 'name)))
-                  "\n\n"
-                  (if doc
-                      ;; remove generics
-                      (replace-regexp-in-string
-                       "`[0-9]+" ""
-                       ;; remove references
-                       (replace-regexp-in-string 
-                        (rx "<see cref=\"" nonl ":" 
-                            (group (*? nonl)) "\"></see>")
-                        "\\1"
-                        doc))
-                    "No documentation"))))))))
+                        (concat (plist-get info 'type)
+                                " "
+                                (plist-get info 'name)))
+                      "\n\n"
+                      (if doc
+                          ;; remove generics
+                          (replace-regexp-in-string
+                           "`[0-9]+" ""
+                           ;; remove references
+                           (replace-regexp-in-string 
+                            (rx "<see cref=\"" nonl ":" 
+                                (group (*? nonl)) "\"></see>")
+                            "\\1"
+                            doc))
+                        "No documentation")))))))))
+
+
+(defun csense-cs-get-information-at-point ()
+  "Return available information at point as a string, or nil if
+there isn't any."
+    (let ((char-syntax-after (char-syntax (char-after)))
+          (char-syntax-before (char-syntax (char-before))))
+      (if (or (eq char-syntax-before ?w)
+              (eq char-syntax-before ?_)
+              (eq char-syntax-after ?w)
+              (eq char-syntax-after ?_))
+        (csense-cs-get-information-for-symbol-at-point))))        
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
@@ -355,39 +368,44 @@ to be returned."
 
 
 (defun csense-cs-get-information-for-symbol-at-point ()  
-  "Return the type of symbol at point or nil if no symbol is found."
-  (let ((end (save-excursion
-               (skip-syntax-forward "w_")
-               (point))))
-    (save-excursion
-      (unless (= (skip-syntax-backward "w_") 0)
-        (let ((symbol (buffer-substring-no-properties (point) end)))
-          (if (csense-cs-backward-to-container)
-              (or (some (lambda (symbol-info)
-                          (if (equal (plist-get symbol-info 'name) symbol)
-                              symbol-info))
+  "Return information about symbol at point."
+  (save-excursion
+    (let ((symbol (buffer-substring-no-properties
+                   (progn (skip-syntax-backward "w_")
+                          (point))
+                   (save-excursion
+                     (skip-syntax-forward "w_")
+                     (point)))))
 
-                        (csense-get-members-for-symbol
-                         (csense-cs-get-information-for-symbol-at-point)))
+      (assert (not (equal symbol "")) nil
+                   "Assertion failure: Symbol shouldn't be empty here")
 
-                  (error "Don't know what '%s' is." symbol))
+      (if (csense-cs-backward-to-container)
+          (or (some (lambda (symbol-info)
+                      (if (equal (plist-get symbol-info 'name) symbol)
+                          symbol-info))
 
-            (or
-             ;; handle this
-             (if (equal symbol "this")
-                 (let ((function-info (csense-cs-get-function-info)))
-                   (if function-info
-                       (csense-get-class-information 
-                        (plist-get function-info 'class-name)))))
+                    (csense-get-members-for-symbol
+                     (csense-cs-get-information-for-symbol-at-point)))
 
-             ;; try it as a local symbol
-             (some (lambda (symbol-info)
-                     (if (equal (plist-get symbol-info 'name) symbol)
-                         symbol-info))
-                   (csense-cs-get-local-symbol-information-at-point))
+              (error "Don't know what '%s' is." symbol))
 
-             ;; let's say it's a class
-             (csense-get-class-information symbol))))))))
+        (or
+         ;; handle this
+         (if (equal symbol "this")
+             (let ((function-info (csense-cs-get-function-info)))
+               (if function-info
+                   (csense-get-class-information 
+                    (plist-get function-info 'class-name)))))
+
+         ;; try it as a local symbol
+         (some (lambda (symbol-info)
+                 (if (equal (plist-get symbol-info 'name) symbol)
+                     symbol-info))
+               (csense-cs-get-local-symbol-information-at-point))
+
+         ;; let's say it's a class
+         (csense-get-class-information symbol))))))
 
 
 (defun csense-get-members-for-symbol (symbol-info)

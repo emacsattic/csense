@@ -27,9 +27,10 @@
 ;;; User configuration
 
 (defvar csense-information-function nil
-  "Function called with no arguments to get information about the symbol at point.
+  "Function called with no arguments to get available information at point.
 
-The function should return a plist with the follwing values:")
+The function should return formatted textual documentation or nil
+if there is no help available.")
 
 (make-variable-buffer-local 'csense-information-function)
 
@@ -60,25 +61,18 @@ must be a plist with the follwing values:")
 (defun csense-setup ()
   "Setup Code Sense for the current buffer."
   (interactive)
-  (local-set-key (kbd "<f1>") 'csense-do-something-clever)
+  (local-set-key (kbd "<f1>") 'csense-show-help)
   (local-set-key (kbd "C-<f1>") 'csense-show-popup-help-for-symbol))
 
 
 
-(defun csense-do-something-clever ()
+(defun csense-show-help ()
   "Do something clever at point."
   (interactive)
-  (let ((char-syntax-after (char-syntax (char-after)))
-        (char-syntax-before (char-syntax (char-before))))
-    (if (and (or (eq char-syntax-before ?w)
-                 (eq char-syntax-before ?_))
-             (or (eq char-syntax-after ?w)
-                 (eq char-syntax-after ?_)))
-        (let ((info (funcall csense-information-function)))
-          (if info
-              (csense-show-popup-help info)))
-
-      (pp (funcall csense-completion-function)))))
+  (let ((info (funcall csense-information-function)))
+    (if info
+        (csense-show-popup-help info)
+      (message "No help available."))))
 
 
 (defun csense-show-popup-help (message)
