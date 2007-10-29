@@ -16,7 +16,7 @@ For release
 
 - handle inherited members 
 
-- caching
+- caching of assemblies, source class lookups
 
 - private fields shouldn't be returned for external assemblies
 
