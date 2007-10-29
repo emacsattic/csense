@@ -4,6 +4,8 @@ Things to do
 For release
 -----------
 
+- should work only within functions!
+
 - function template (better word, signature?)
 
 - handling scopes without blocks (foreach, for, etc)
