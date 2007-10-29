@@ -16,8 +16,6 @@ For release
 
 - caching of assemblies, source class lookups
 
-- private fields shouldn't be returned for external assemblies
-
 - jump to documentation
 
 - bold references in doc

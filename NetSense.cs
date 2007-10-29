@@ -72,7 +72,7 @@ namespace netsense
 
 				foreach (Type t in asm.GetTypes())
 				{
-					//if (t.FullName != "System.Collections.Generic.List`1")
+					//if (t.FullName != "System.String")
 					//	continue;
 					
 					Console.WriteLine("(name \"" +
@@ -99,6 +99,8 @@ namespace netsense
 						switch (member.MemberType)
 						{
 							case MemberTypes.Method:
+								if (((MethodInfo)member).IsPrivate)
+									continue;
 								type = ((MethodInfo)member).ReturnType.FullName;
 								break;
 							default:
