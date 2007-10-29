@@ -22,6 +22,7 @@ For release
 
 - document how the backend works
 
+- check all forward/backward-sexps for error checking
 
 
 Someday

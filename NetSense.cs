@@ -24,6 +24,7 @@ using System.Data;
 using System.Xml;
 using System.Text.RegularExpressions;
 
+
 namespace netsense
 {
 	public class NetSense
@@ -35,13 +36,10 @@ namespace netsense
 			                          Path.GetFileNameWithoutExtension(file) +
 			                          ".xml");
 			
-			Dictionary<string, string> docs = null;
+			Dictionary<string, string> docs = new Dictionary<string, string>();
 			
 			if (File.Exists(xml))
 			{
-				docs = new Dictionary<string, string>();
-				Regex r = new Regex(@"(.+)\(.*\)");
-				
 				using (XmlReader reader = XmlReader.Create(xml))
 				{
 					reader.ReadToFollowing("members");
@@ -50,16 +48,7 @@ namespace netsense
 						string name = reader.GetAttribute("name");
 						if (reader.ReadToDescendant("summary"))
 						{
-							Match m = r.Match(name);
-							if (m.Success)
-								name = m.Groups[1].ToString();
-							
-							try
-							{
-								docs.Add(name, reader.ReadInnerXml());
-							}
-							catch (ArgumentException)
-							{}
+							docs.Add(name, reader.ReadInnerXml());
 						}
 					}
 				}
@@ -80,12 +69,9 @@ namespace netsense
 					                  Regex.Replace(t.FullName, "`[0-9]+", "")
 					                  + "\"");
 					
-					if (docs != null)
-					{
-						string doc;
-						if (docs.TryGetValue("T:" + t.FullName, out doc))
-							Console.WriteLine("\tdoc \"" + qoute(doc) + "\"");
-					}
+					string doc;
+					if (docs.TryGetValue("T:" + t.FullName, out doc))
+						Console.WriteLine("\tdoc \"" + qoute(doc) + "\"");
 
 					Console.WriteLine("\tmembers (");
 
@@ -94,30 +80,67 @@ namespace netsense
 					                                           BindingFlags.NonPublic |
 					                                           BindingFlags.Instance))
 					{
-						string type;
+						string type = null;
+						string extra = null;
+						doc = null;
+						
+						//Console.WriteLine(member.MemberType);
 						
 						switch (member.MemberType)
 						{
 							case MemberTypes.Method:
-								if (((MethodInfo)member).IsPrivate)
+								MethodInfo method = ((MethodInfo)member);
+								if (method.IsPrivate || method.IsAssembly)
 									continue;
-								type = ((MethodInfo)member).ReturnType.FullName;
+								type = method.ReturnType.FullName;
+								
+								string signature = "";
+								extra = "";
+								
+								foreach (ParameterInfo param in method.GetParameters())
+								{
+									string comma = signature == "" ? "" : ",";
+									signature += comma + param.ParameterType;
+
+									extra += "\t\t\tname \"" + param.Name +
+										"\" type \"" + param.ParameterType + "\"\n";
+								}
+								
+								if (extra != "")
+									extra = "\n\t\tparams (\n" + extra + "\t\t\t)\n\t\t";
+								
+								signature = "M:" + t.FullName + "." + member.Name +
+									"(" + signature + ")";
+								docs.TryGetValue(signature, out doc);
+								
 								break;
+								
+							case MemberTypes.Property:
+								docs.TryGetValue("P:" + t.FullName + "." + member.Name, out doc);
+								break;
+								
+							case MemberTypes.Field:
+								FieldInfo field = (FieldInfo)member;
+								if (field.IsPrivate || field.IsAssembly)
+									continue;
+								docs.TryGetValue("F:" + t.FullName + "." + member.Name, out doc);
+								break;
+								
 							default:
-								type = member.ReflectedType.FullName;
 								break;
 						}
+						
+						if (type == null)
+							type = member.ReflectedType.FullName;
 						
 						Console.Write("\t\t(name \"" + member.Name + "\" " +
-						              "type \"" + type + "\" ");
+						              "type \"" + type + "\"");
 						
-						if (docs != null)
-						{
-							string doc;
-							if (docs.TryGetValue("M:" + t.FullName + "." + member.Name, out doc) ||
-							    docs.TryGetValue("P:" + t.FullName + "." + member.Name, out doc))
-								Console.WriteLine("doc \"" + qoute(doc) + "\"");
-						}
+						if (doc != null)
+							Console.Write(" doc \"" + qoute(doc) + "\"");
+						
+						if (extra != null)
+							Console.Write(extra);
 						
 						Console.WriteLine(")");
 					}
