@@ -74,17 +74,9 @@ must be a plist with the follwing values:")
                  (eq char-syntax-before ?_))
              (or (eq char-syntax-after ?w)
                  (eq char-syntax-after ?_)))
-        (let* ((info (funcall csense-information-function))
-               (doc (or (plist-get info 'doc)
-
-                        (let ((file (plist-get info 'file)))
-                          (if file
-                              (csense-get-code-context file 
-                                                       (plist-get info 'pos)))))))
-          (csense-show-popup-help 
-           (csense-color-header (if doc
-                                    (csense-wrap-text doc)
-                                  "No documentation."))))
+        (let ((info (funcall csense-information-function)))
+          (if info
+              (csense-show-popup-help info)))
 
       (pp (funcall csense-completion-function)))))
 

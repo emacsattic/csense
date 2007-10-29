@@ -148,33 +148,36 @@ directory then it will be used as well.")
 
 (defun csense-cs-doc-formatter-for-csense-frontend ()
   "Format documentation for the CSense frontend."
-  (let ((info (csense-cs-get-information-for-symbol-at-point)))
-    ;; if it was found in the sources then the csense fronted will
-    ;; take care of displaying the relevant parts of the source code
-    (if (plist-get info 'file)
-        info
+  (let* ((info (csense-cs-get-information-for-symbol-at-point))
+         (file (plist-get info 'file)))
+    (csense-color-header 
+     (csense-wrap-text
+      ;; if it was found in the sources then show the relevant part of
+      ;; the source code
+      (if file
+          (csense-get-code-context file (plist-get info 'pos))
 
-      (let ((doc (plist-get info 'doc)))
-        (plist-put info
-                   'doc (concat (if (plist-get info 'members)
-                                    (concat "class " 
-                                            (plist-get info 'name))
+        ;; othewise show the retrieved documentation
+        (let ((doc (plist-get info 'doc)))
+          (concat (if (plist-get info 'members)
+                      (concat "class " 
+                              (plist-get info 'name))
 
-                                  (concat (plist-get info 'type)
-                                          " "
-                                          (plist-get info 'name)))
-                                "\n\n"
-                                (if doc
-                                    ;; remove generics
-                                    (replace-regexp-in-string
-                                     "`[0-9]+" ""
-                                     ;; remove references
-                                     (replace-regexp-in-string 
-                                      (rx "<see cref=\"" nonl ":" 
-                                          (group (*? nonl)) "\"></see>")
-                                      "\\1"
-                                      doc))
-                                  "No documentation")))))))
+                    (concat (plist-get info 'type)
+                            " "
+                            (plist-get info 'name)))
+                  "\n\n"
+                  (if doc
+                      ;; remove generics
+                      (replace-regexp-in-string
+                       "`[0-9]+" ""
+                       ;; remove references
+                       (replace-regexp-in-string 
+                        (rx "<see cref=\"" nonl ":" 
+                            (group (*? nonl)) "\"></see>")
+                        "\\1"
+                        doc))
+                    "No documentation"))))))))
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
