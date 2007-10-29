@@ -4,8 +4,6 @@ Things to do
 For release
 -----------
 
-- should work only within functions!
-
 - function template (better word, signature?)
 
 - handling scopes without blocks (foreach, for, etc)
@@ -20,9 +18,12 @@ For release
 
 - private fields shouldn't be returned for external assemblies
 
+- jump to documentation
+
 - bold references in doc
 
 - document how the backend works
+
 
 
 Someday
