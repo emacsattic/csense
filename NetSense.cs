@@ -110,7 +110,7 @@ namespace netsense
 									extra = "\n\t\tparams (\n" + extra + "\t\t\t)\n\t\t";
 								
 								signature = "M:" + t.FullName + "." + member.Name +
-									"(" + signature + ")";
+									(signature == "" ? "" : "(" + signature + ")");
 								docs.TryGetValue(signature, out doc);
 								
 								break;
