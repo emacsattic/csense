@@ -43,7 +43,5 @@ Someday
 
 - skip stuff in comments and strings
 
-- add aliases for displaying common classes
-
 - completion for other places too (e.g. after = new ...)
 

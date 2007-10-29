@@ -90,6 +90,25 @@ directory then it will be used as well.")
   (append csense-cs-type-regexp '((+ space)) csense-cs-symbol-regexp)
   "Regular expression for matching a type.")
 
+(defconst csense-cs-type-aliases
+  '(("bool"	. "Boolean")
+    ("byte"	. "Byte")
+    ("char"	. "Char")
+    ("decimal"	. "Decimal")
+    ("double"	. "Double")
+    ("float"	. "Single")
+    ("int"	. "Int32")
+    ("long"	. "Int64")
+    ("object"	. "Object")
+    ("sbyte"	. "SByte")
+    ("short"	. "Int16")
+    ("string"	. "String")
+    ("uint"	. "UInt32")
+    ("ulong"	. "UInt64")
+    ("ushort"	. "UInt16")
+    ("void"	. "Void"))
+  "C# type aliases and the corresponding .NET types.")
+
 
 (defvar csense-cs-type-hash (make-hash-table :test 'equal)
   "Hash containing known type information.")
@@ -158,32 +177,41 @@ directory then it will be used as well.")
               (csense-get-code-context (plist-get info 'file)
                                        (plist-get info 'pos))
 
-            ;; othewise show the retrieved documentation
-
-            ;; remove namespace from classnames for readability
-            ;; (brute force approach)
-            (replace-regexp-in-string
-             "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
+            ;; othewise format the retrieved documentation
              (let ((doc (plist-get info 'doc)))
-               (concat (if (plist-get info 'members)
-                           (concat "class " 
-                                   (plist-get info 'name))
+               (setq doc
+                     (concat (if (plist-get info 'members)
+                                 (concat "class " 
+                                         (plist-get info 'name))
 
-                         (concat (plist-get info 'type)
-                                 " "
-                                 (plist-get info 'name)))
-                       "\n\n"
-                       (if doc
-                           ;; remove generics
-                           (replace-regexp-in-string
-                            "`[0-9]+" ""
-                            ;; remove references
-                            (replace-regexp-in-string 
-                             (rx "<see cref=\"" nonl ":" 
-                                 (group (*? nonl)) "\"></see>")
-                             "\\1"
-                             doc))
-                         "No documentation"))))))))))
+                               (concat (plist-get info 'type)
+                                       " "
+                                       (plist-get info 'name)))
+                             "\n\n"
+                             (if doc
+                                 ;; remove generics
+                                 (replace-regexp-in-string
+                                  "`[0-9]+" ""
+                                  ;; remove references
+                                  (replace-regexp-in-string 
+                                   (rx "<see cref=\"" nonl ":" 
+                                       (group (*? nonl)) "\"></see>")
+                                   "\\1"
+                                   doc))
+                               "No documentation")))
+
+               ;; replace aliased types with their shorter version
+               (dolist (alias csense-cs-type-aliases)
+                 (setq doc (replace-regexp-in-string 
+                            (concat "System." (cdr alias)) (car alias) doc t)))
+
+               ;; remove namespace from classnames for readability
+               ;; (brute force approach)
+               (setq doc (replace-regexp-in-string
+                          "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
+                          doc))
+
+               doc)))))))
 
 
 (defun csense-cs-get-information-at-point ()
@@ -495,11 +523,11 @@ container, and return t."
                                           (group (+ nonl)) (* space) ";")
                                       nil t))
          (let ((class-name (concat (match-string-no-properties 1) "." class)))
-           ;; handle string and object aliases
-           (if (equal class-name "System.string")
-               (setq class-name "System.String")
-             (if (equal class-name "System.object")
-                 (setq class-name "System.Object")))
+           ;; handle aliases
+           (some (lambda (alias)
+                   (if (equal class-name (concat "System." (car alias)))
+                       (setq class-name (concat "System." (cdr alias)))))
+                 csense-cs-type-aliases)
            ;; copy tree is done, so that destructive operations on the result
            ;; do not affect the hash contents
            (setq class-info 
