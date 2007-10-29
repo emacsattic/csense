@@ -159,26 +159,31 @@ directory then it will be used as well.")
                                        (plist-get info 'pos))
 
             ;; othewise show the retrieved documentation
-            (let ((doc (plist-get info 'doc)))
-              (concat (if (plist-get info 'members)
-                          (concat "class " 
-                                  (plist-get info 'name))
 
-                        (concat (plist-get info 'type)
-                                " "
-                                (plist-get info 'name)))
-                      "\n\n"
-                      (if doc
-                          ;; remove generics
-                          (replace-regexp-in-string
-                           "`[0-9]+" ""
-                           ;; remove references
-                           (replace-regexp-in-string 
-                            (rx "<see cref=\"" nonl ":" 
-                                (group (*? nonl)) "\"></see>")
-                            "\\1"
-                            doc))
-                        "No documentation")))))))))
+            ;; remove namespace from classnames for readability
+            ;; (brute force approach)
+            (replace-regexp-in-string
+             "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
+             (let ((doc (plist-get info 'doc)))
+               (concat (if (plist-get info 'members)
+                           (concat "class " 
+                                   (plist-get info 'name))
+
+                         (concat (plist-get info 'type)
+                                 " "
+                                 (plist-get info 'name)))
+                       "\n\n"
+                       (if doc
+                           ;; remove generics
+                           (replace-regexp-in-string
+                            "`[0-9]+" ""
+                            ;; remove references
+                            (replace-regexp-in-string 
+                             (rx "<see cref=\"" nonl ":" 
+                                 (group (*? nonl)) "\"></see>")
+                             "\\1"
+                             doc))
+                         "No documentation"))))))))))
 
 
 (defun csense-cs-get-information-at-point ()

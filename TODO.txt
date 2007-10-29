@@ -4,6 +4,8 @@ Things to do
 For release
 -----------
 
+- function doc for generic methods (e.g. List.Add)
+
 - function template (better word, signature?)
 
 - handling scopes without blocks (foreach, for, etc)
@@ -42,8 +44,6 @@ Someday
 - skip stuff in comments and strings
 
 - add aliases for displaying common classes
-
-- shortened class names for symbols in the same assembly in documentation
 
 - completion for other places too (e.g. after = new ...)
 
