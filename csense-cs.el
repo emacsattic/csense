@@ -184,13 +184,16 @@ directory then it will be used as well.")
 (defun csense-cs-get-information-at-point ()
   "Return available information at point as a string, or nil if
 there isn't any."
+  (if (not (csense-cs-get-function-info))
+      (error "The parser works only within functions. For now.")
+
     (let ((char-syntax-after (char-syntax (char-after)))
           (char-syntax-before (char-syntax (char-before))))
       (if (or (eq char-syntax-before ?w)
               (eq char-syntax-before ?_)
               (eq char-syntax-after ?w)
               (eq char-syntax-after ?_))
-        (csense-cs-get-information-for-symbol-at-point))))        
+        (csense-cs-get-information-for-symbol-at-point)))))
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
