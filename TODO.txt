@@ -29,6 +29,9 @@ For release
 - test what happens if header is too long and it is wrapped into more
   lines
 
+- static functions
+
+
 
 Someday
 -------
@@ -48,3 +51,6 @@ Someday
 
 - completion for other places too (e.g. after = new ...)
 
+- default values
+
+- static functions
