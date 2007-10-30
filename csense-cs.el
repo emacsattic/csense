@@ -45,6 +45,7 @@
 (require 'csense)
 (require 'csharp-mode)
 (require 'rx)
+(require 'cl)
 
 
 ;;; User configuration
@@ -167,64 +168,66 @@ directory then it will be used as well.")
 
 (defun csense-cs-doc-formatter-for-csense-frontend ()
   "Format documentation for the CSense frontend."
-  (let ((info (csense-cs-get-information-at-point)))
-    (if info
-        (csense-color-header 
-         (csense-wrap-text
-          ;; if it was found in the sources then show the relevant part of
-          ;; the source code
-          (if (plist-get info 'file)
-              (csense-get-code-context (plist-get info 'file)
-                                       (plist-get info 'pos))
+  (mapcar
+   (lambda (info)
+     (csense-color-header 
+      (csense-wrap-text
+       ;; if it was found in the sources then show the relevant part of
+       ;; the source code
+       (if (plist-get info 'file)
+           (csense-get-code-context (plist-get info 'file)
+                                    (plist-get info 'pos))
 
-            ;; othewise format the retrieved documentation
-             (let ((doc (plist-get info 'doc)))
-               (setq doc
-                     (concat (if (plist-get info 'members)
-                                 (concat "class " 
-                                         (plist-get info 'name))
+         ;; othewise format the retrieved documentation
+         (let ((doc (plist-get info 'doc)))
+           (setq doc
+                 (concat (if (plist-get info 'members)
+                             (concat "class " 
+                                     (plist-get info 'name))
 
-                               ;; class member
-                               (concat 
-                                (plist-get info 'type)
-                                " "
-                                (plist-get info 'name)
+                           ;; class member
+                           (concat 
+                            (plist-get info 'type)
+                            " "
+                            (plist-get info 'name)
 
-                                (if (eq (plist-get info 'what) 'method)
-                                    (concat "("
-                                            (mapconcat 
-                                             (lambda (param)
-                                               (concat (plist-get param 'type)
-                                                       " "
-                                                       (plist-get param 'name)))
-                                             (plist-get info 'params)
-                                             ", ")
-                                            ")"))))
-                             "\n\n"
-                             (if doc
-                                 ;; remove generics
-                                 (replace-regexp-in-string
-                                  "`[0-9]+" ""
-                                  ;; remove references
-                                  (replace-regexp-in-string 
-                                   (rx "<see cref=\"" nonl ":" 
-                                       (group (*? nonl)) "\"></see>")
-                                   "\\1"
-                                   doc))
-                               "No documentation")))
+                            (if (eq (plist-get info 'what) 'method)
+                                (concat "("
+                                        (mapconcat 
+                                         (lambda (param)
+                                           (concat (plist-get param 'type)
+                                                   " "
+                                                   (plist-get param 'name)))
+                                         (plist-get info 'params)
+                                         ", ")
+                                        ")"))))
+                         "\n\n"
+                         (if doc
+                             ;; remove generics
+                             (replace-regexp-in-string
+                              "`[0-9]+" ""
+                              ;; remove references
+                              (replace-regexp-in-string 
+                               (rx "<see cref=\"" nonl ":" 
+                                   (group (*? nonl)) "\"></see>")
+                               "\\1"
+                               doc))
+                           "No documentation")))
 
-               ;; replace aliased types with their shorter version
-               (dolist (alias csense-cs-type-aliases)
-                 (setq doc (replace-regexp-in-string 
-                            (concat "System." (cdr alias)) (car alias) doc t)))
+           ;; replace aliased types with their shorter version
+           (dolist (alias csense-cs-type-aliases)
+             (setq doc (replace-regexp-in-string 
+                        (concat "System." (cdr alias)) (car alias) doc t)))
 
-               ;; remove namespace from classnames for readability
-               ;; (brute force approach)
-               (setq doc (replace-regexp-in-string
-                          "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
-                          doc))
+           ;; remove namespace from classnames for readability
+           ;; (brute force approach)
+           (setq doc (replace-regexp-in-string
+                      "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
+                      doc))
 
-               doc)))))))
+           doc)))))
+
+   (csense-cs-get-information-at-point)))
 
 
 (defun csense-cs-get-information-at-point ()
@@ -417,7 +420,9 @@ to be returned."
 
 
 (defun csense-cs-get-information-for-symbol-at-point ()  
-  "Return information about symbol at point."
+  "Get information about symbol at point or throw an error if symbol is unknown.
+
+The return value is a list of plists."
   (save-excursion
     (let ((symbol (buffer-substring-no-properties
                    (progn (skip-syntax-backward "w_")
@@ -430,31 +435,47 @@ to be returned."
                    "Assertion failure: Symbol shouldn't be empty here")
 
       (if (csense-cs-backward-to-container)
-          (or (some (lambda (symbol-info)
-                      (if (equal (plist-get symbol-info 'name) symbol)
-                          symbol-info))
+          (let ((parent-info (csense-cs-get-information-for-symbol-at-point)))
+            ;; in case of overloaded methods their return type must be
+            ;; the same
+            (if (eq (plist-get (car parent-info) 'what) 'method)
+                (let ((type (plist-get (car parent-info) 'type)))
+                  (dolist (method-info (cdr parent-info))
+                    (assert (equal type (plist-get method-info 'type))))))
 
-                    (csense-get-members-for-symbol
-                     (csense-cs-get-information-for-symbol-at-point)))
+            ;; we're interested only in the return type, so it's
+            ;; enough to work with the first result
+            (setq parent-info (car parent-info))
+            
+            (or (delete-if
+                 'null
+                 (mapcar (lambda (symbol-info)
+                           (if (equal (plist-get symbol-info 'name) symbol)
+                               symbol-info))
+                         (csense-get-members-for-symbol parent-info)))
 
-              (error "Don't know what '%s' is." symbol))
+              (error "Don't know what '%s' is." symbol)))
 
-        (or
-         ;; handle this
-         (if (equal symbol "this")
-             (let ((function-info (csense-cs-get-function-info)))
-               (if function-info
-                   (csense-get-class-information 
-                    (plist-get function-info 'class-name)))))
+        ;; wrap the result in a list for consistency, even if there is
+        ;; only element. it simplifies handling the result in various
+        ;; places
+        (list 
+         (or
+          ;; handle this
+          (if (equal symbol "this")
+              (let ((function-info (csense-cs-get-function-info)))
+                (if function-info
+                    (csense-get-class-information 
+                     (plist-get function-info 'class-name)))))
 
-         ;; try it as a local symbol
-         (some (lambda (symbol-info)
-                 (if (equal (plist-get symbol-info 'name) symbol)
-                     symbol-info))
-               (csense-cs-get-local-symbol-information-at-point))
+          ;; try it as a local symbol
+          (some (lambda (symbol-info)
+                  (if (equal (plist-get symbol-info 'name) symbol)
+                      symbol-info))
+                (csense-cs-get-local-symbol-information-at-point))
 
-         ;; let's say it's a class
-         (csense-get-class-information symbol))))))
+          ;; let's say it's a class
+          (csense-get-class-information symbol)))))))
 
 
 (defun csense-get-members-for-symbol (symbol-info)

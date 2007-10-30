@@ -70,8 +70,10 @@ must be a plist with the follwing values:")
   "Do something clever at point."
   (interactive)
   (let ((info (funcall csense-information-function)))
+    (if (> (length info) 1)
+        (message "Multi"))
     (if info
-        (csense-show-popup-help info)
+        (csense-show-popup-help (car info))
       (message "No help available."))))
 
 
