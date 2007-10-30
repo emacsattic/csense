@@ -231,8 +231,7 @@ directory then it will be used as well.")
 
 
 (defun csense-cs-get-information-at-point ()
-  "Return available information at point as a string, or nil if
-there isn't any."
+  "Return available information at point."
   (if (not (csense-cs-get-function-info))
       (error "The parser works only within functions. For now.")
 
