@@ -20,24 +20,31 @@
 ;; Boston, MA 02110-1301, USA.
 
 ;;; Commentary:
-;;;
-;;; The parser here takes a completely opportunistic approach. It
-;;; doesn't aim completeness or correctness, it simply does what it
-;;; needs to do by taking shortcuts and making outrageous assumptions.
-;;;
-;;; It doesn't do the proper thing in all the cases, it simply does a
-;;; good enough job in most of the cases.
-;;;
-;;; Below are the list of assummptions made. These simplify things
-;;; and although they could be implemented properly, it is defered
-;;; until I actually need them to work correctly.
-;;;
-;;;
-;;; Assumptions:
-;;;   
-;;;  - In the project each class has a unique name regardless of
-;;;    namespaces.
-;;;
+
+;; If you want to use the Code Sense frontend then simply require the
+;; C# frontend:
+;;
+;;    (require 'csense-cs-frontend)
+;;
+;;
+;; The parser here takes a completely opportunistic approach. It
+;; doesn't aim completeness or correctness, it simply does what it
+;; needs to do by taking shortcuts and making outrageous assumptions.
+;;
+;; It doesn't do the proper thing in all the cases, it simply does a
+;; good enough job in most of the cases.
+;;
+;; Below are the list of assummptions made. These simplify things
+;; and although they could be implemented properly, it is defered
+;; until I actually need them to work correctly.
+;;
+;;
+;; Assumptions:
+;;   
+;;  - In the project each class has a unique name regardless of
+;;    namespaces.
+;;
+;;  Tested on Emacs 22.
 
 
 ;;; Code:
@@ -121,20 +128,13 @@ directory then it will be used as well.")
 (modify-syntax-entry ?\n " " csense-cs-newline-whitespace-syntax-table)
 
 
-(defun csense-cs-setup-csense-frontend ()
-  "Setup up CodeSense frontend for C#."
-  (require 'csense)
-  (add-hook 'csharp-mode-hook 'csense-cs-setup)
-  (add-hook 'csharp-mode-hook 'csense-setup))
+(add-hook 'csharp-mode-hook 'csense-setup)
+(add-hook 'csharp-mode-hook 'csense-cs-setup)
   
 
 (defun csense-cs-setup ()
-  "Setup CodeSense for the current C# buffer."
-  (csense-cs-initialize)
-  (setq csense-information-function 
-        'csense-cs-doc-formatter-for-csense-frontend)
-  (setq csense-completion-function 
-        'csense-cs-get-completions-for-symbol-at-point))
+  "Setup C# backend for the current buffer."
+  (csense-cs-initialize))
 
 
 (defun csense-cs-initialize ()
@@ -164,73 +164,6 @@ directory then it will be used as well.")
           (puthash (plist-get type 'name) type csense-cs-type-hash))))
 
     (message "Done.")))
-
-
-(defun csense-cs-doc-formatter-for-csense-frontend ()
-  "Format documentation for the CSense frontend."
-  (mapcar
-   (lambda (info)
-     (plist-put
-      info 
-      'doc
-      (csense-color-header 
-       (csense-wrap-text
-        ;; if it was found in the sources then show the relevant part of
-        ;; the source code
-        (if (plist-get info 'file)
-            (csense-get-code-context (plist-get info 'file)
-                                     (plist-get info 'pos))
-
-          ;; othewise format the retrieved documentation
-          (let ((doc (plist-get info 'doc)))
-            (setq doc
-                  (concat (if (plist-get info 'members)
-                              (concat "class " 
-                                      (plist-get info 'name))
-
-                            ;; class member
-                            (concat 
-                             (plist-get info 'type)
-                             " "
-                             (plist-get info 'name)
-
-                             (if (eq (plist-get info 'what) 'method)
-                                 (concat "("
-                                         (mapconcat 
-                                          (lambda (param)
-                                            (concat (plist-get param 'type)
-                                                    " "
-                                                    (plist-get param 'name)))
-                                          (plist-get info 'params)
-                                          ", ")
-                                         ")"))))
-                          "\n\n"
-                          (if doc
-                              ;; remove generics
-                              (replace-regexp-in-string
-                               "`[0-9]+" ""
-                               ;; remove references
-                               (replace-regexp-in-string 
-                                (rx "<see cref=\"" nonl ":" 
-                                    (group (*? nonl)) "\"></see>")
-                                "\\1"
-                                doc))
-                            "No documentation")))
-
-            ;; replace aliased types with their shorter version
-            (dolist (alias csense-cs-type-aliases)
-              (setq doc (replace-regexp-in-string 
-                         (concat "System." (cdr alias)) (car alias) doc t)))
-
-            ;; remove namespace from classnames for readability
-            ;; (brute force approach)
-            (setq doc (replace-regexp-in-string
-                       "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
-                       doc))
-
-            doc))))))
-
-     (csense-cs-get-information-at-point)))
 
 
 (defun csense-cs-get-information-at-point ()

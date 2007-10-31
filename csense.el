@@ -19,6 +19,11 @@
 
 ;;; Commentary:
 
+;; Generic Code Sense frontend for assistance during coding.
+;;
+;; Install it by requiring one of the language-specific frontends.
+;;
+
 ;;  Tested on Emacs 22.
 
 ;;; Code:
