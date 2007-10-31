@@ -26,6 +26,20 @@
 
 ;;; User configuration
 
+(defvar csense-max-tooltip-line-length 70
+  "Maximum length of lines in tooltips.")
+
+
+(defvar csense-tooltip-header-color "moccasin"
+  "Color of header lines in tooltips.")
+
+
+(defvar csense-tooltip-current-line-color "honeydew2"
+  "Color of the current line in tooltips for which information is shown.")
+
+
+;;;----------------------------------------------------------------------------
+
 (defvar csense-information-function nil
   "Function called with no arguments to get available information at point.
 
@@ -43,20 +57,6 @@ must be a plist with the follwing values:")
 
 (make-variable-buffer-local 'csense-completion-function)
 
-
-(defvar csense-max-tooltip-line-length 70
-  "Maximum length of lines in tooltips.")
-
-
-(defvar csense-tooltip-header-color "moccasin"
-  "Color of header lines in tooltips.")
-
-
-(defvar csense-tooltip-current-line-color "honeydew2"
-  "Color of the current line in tooltips for which information is shown.")
-
-
-;;;----------------------------------------------------------------------------
 
 (defun csense-setup ()
   "Setup Code Sense for the current buffer."
