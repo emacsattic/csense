@@ -69,11 +69,12 @@ must be a plist with the follwing values:")
 (defun csense-show-help ()
   "Do something clever at point."
   (interactive)
-  (let ((info (funcall csense-information-function)))
+  (let* ((info (funcall csense-information-function))
+         (doc (plist-get (car info) 'doc)))
     (if (> (length info) 1)
         (message "Multi"))
-    (if info
-        (csense-show-popup-help (car info))
+    (if doc
+        (csense-show-popup-help doc)
       (message "No help available."))))
 
 

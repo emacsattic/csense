@@ -170,64 +170,67 @@ directory then it will be used as well.")
   "Format documentation for the CSense frontend."
   (mapcar
    (lambda (info)
-     (csense-color-header 
-      (csense-wrap-text
-       ;; if it was found in the sources then show the relevant part of
-       ;; the source code
-       (if (plist-get info 'file)
-           (csense-get-code-context (plist-get info 'file)
-                                    (plist-get info 'pos))
+     (plist-put
+      info 
+      'doc
+      (csense-color-header 
+       (csense-wrap-text
+        ;; if it was found in the sources then show the relevant part of
+        ;; the source code
+        (if (plist-get info 'file)
+            (csense-get-code-context (plist-get info 'file)
+                                     (plist-get info 'pos))
 
-         ;; othewise format the retrieved documentation
-         (let ((doc (plist-get info 'doc)))
-           (setq doc
-                 (concat (if (plist-get info 'members)
-                             (concat "class " 
-                                     (plist-get info 'name))
+          ;; othewise format the retrieved documentation
+          (let ((doc (plist-get info 'doc)))
+            (setq doc
+                  (concat (if (plist-get info 'members)
+                              (concat "class " 
+                                      (plist-get info 'name))
 
-                           ;; class member
-                           (concat 
-                            (plist-get info 'type)
-                            " "
-                            (plist-get info 'name)
+                            ;; class member
+                            (concat 
+                             (plist-get info 'type)
+                             " "
+                             (plist-get info 'name)
 
-                            (if (eq (plist-get info 'what) 'method)
-                                (concat "("
-                                        (mapconcat 
-                                         (lambda (param)
-                                           (concat (plist-get param 'type)
-                                                   " "
-                                                   (plist-get param 'name)))
-                                         (plist-get info 'params)
-                                         ", ")
-                                        ")"))))
-                         "\n\n"
-                         (if doc
-                             ;; remove generics
-                             (replace-regexp-in-string
-                              "`[0-9]+" ""
-                              ;; remove references
-                              (replace-regexp-in-string 
-                               (rx "<see cref=\"" nonl ":" 
-                                   (group (*? nonl)) "\"></see>")
-                               "\\1"
-                               doc))
-                           "No documentation")))
+                             (if (eq (plist-get info 'what) 'method)
+                                 (concat "("
+                                         (mapconcat 
+                                          (lambda (param)
+                                            (concat (plist-get param 'type)
+                                                    " "
+                                                    (plist-get param 'name)))
+                                          (plist-get info 'params)
+                                          ", ")
+                                         ")"))))
+                          "\n\n"
+                          (if doc
+                              ;; remove generics
+                              (replace-regexp-in-string
+                               "`[0-9]+" ""
+                               ;; remove references
+                               (replace-regexp-in-string 
+                                (rx "<see cref=\"" nonl ":" 
+                                    (group (*? nonl)) "\"></see>")
+                                "\\1"
+                                doc))
+                            "No documentation")))
 
-           ;; replace aliased types with their shorter version
-           (dolist (alias csense-cs-type-aliases)
-             (setq doc (replace-regexp-in-string 
-                        (concat "System." (cdr alias)) (car alias) doc t)))
+            ;; replace aliased types with their shorter version
+            (dolist (alias csense-cs-type-aliases)
+              (setq doc (replace-regexp-in-string 
+                         (concat "System." (cdr alias)) (car alias) doc t)))
 
-           ;; remove namespace from classnames for readability
-           ;; (brute force approach)
-           (setq doc (replace-regexp-in-string
-                      "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
-                      doc))
+            ;; remove namespace from classnames for readability
+            ;; (brute force approach)
+            (setq doc (replace-regexp-in-string
+                       "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
+                       doc))
 
-           doc)))))
+            doc))))))
 
-   (csense-cs-get-information-at-point)))
+     (csense-cs-get-information-at-point)))
 
 
 (defun csense-cs-get-information-at-point ()
