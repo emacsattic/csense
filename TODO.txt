@@ -18,16 +18,11 @@ For release
 
 - caching of assemblies, source class lookups
 
-- jump to documentation
-
 - bold references in doc
 
 - document how the backend works
 
 - check all forward/backward-sexps for error checking
-
-- test what happens if header is too long and it is wrapped into more
-  lines
 
 - static functions
 
@@ -35,14 +30,11 @@ For release
   relevant class, instead of the point in the source code (what about
   primitive types?)
 
--  help on Regex comes up empty
-
-- local symbols with types from assembly jump to the symbol instead of
-  showing assembly help
+- not just in functions
 
 
-
-Someday -------
+Someday 
+-------
 
 - overloaded functions
 

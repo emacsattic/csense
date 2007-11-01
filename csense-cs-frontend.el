@@ -83,8 +83,8 @@ data for the CSense frontend."
   (plist-put
    info 
    'doc
-   (csense-color-header 
-    (csense-wrap-text
+   (csense-wrap-text
+    (csense-color-header 
      ;; if it was found in the sources then show the relevant part of
      ;; the source code
      (if (plist-get info 'file)
