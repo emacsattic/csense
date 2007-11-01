@@ -496,18 +496,18 @@ container, and return t."
                          (setq class-name (concat "System." (cdr alias)))))
                    csense-cs-type-aliases)
 
-             (setq class-info
-                   (copy-tree (gethash class-name csense-cs-type-hash)))))))
+             (setq class-info (gethash class-name csense-cs-type-hash))))))
 
-     ;; copy tree is done, so that destructive operations on the result
-     ;; do not affect the hash contents
-     (setq class-info (copy-tree class-info))
+     (when class-info
+       ;; copy tree is done, so that destructive operations on the result
+       ;; do not affect the hash contents
+       (setq class-info (copy-tree class-info))
 
-     ;; a link to the parent class is put into every member
-     (plist-put class-info
-                'members (mapcar (lambda (member)
-                                   (plist-put member 'class class-info))
-                                 (plist-get class-info 'members))))
+       ;; a link to the parent class is put into every member
+       (plist-put class-info
+                  'members (mapcar (lambda (member)
+                                     (plist-put member 'class class-info))
+                                   (plist-get class-info 'members)))))
 
    (error "Class '%s' not found. Are you perhaps missing an assembly?" class)))
 
