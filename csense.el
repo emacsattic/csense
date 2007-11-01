@@ -190,18 +190,20 @@ and WIDTH in characters."
         (setq result
               (concat (csense-truncate-path (buffer-file-name))
                       ":\n\n"
-                      (buffer-substring (save-excursion
-                                          (forward-line -5)
-                                          (point))
-                                        (line-beginning-position))
-                      (csense-color-string-background
-                       (buffer-substring (line-beginning-position)
-                                         (1+ (line-end-position)))
-                       csense-tooltip-current-line-color)
-                      (buffer-substring (1+ (line-end-position))
-                                        (save-excursion
-                                          (forward-line +5)
-                                          (point)))))))
+                      (csense-remove-leading-whitespace
+                       (concat
+                        (buffer-substring (save-excursion
+                                            (forward-line -5)
+                                            (point))
+                                          (line-beginning-position))
+                        (csense-color-string-background
+                         (buffer-substring (line-beginning-position)
+                                           (1+ (line-end-position)))
+                         csense-tooltip-current-line-color)
+                        (buffer-substring (1+ (line-end-position))
+                                          (save-excursion
+                                            (forward-line +5)
+                                            (point)))))))))
 
     (if kill
         (kill-buffer buffer))
@@ -268,5 +270,41 @@ beginning."
               (substring str (1+ pos))))))
 
 
+
+(defun csense-remove-leading-whitespace (str)
+  "Remove leading identical whitespace from lines of STR."
+  (let* ((lines (split-string str "\n"))
+         char (count 0)) 
+    (while (every (lambda (line)
+                    (or (<= (length line) count)
+                        (if char
+                            (eq (aref line count) char)
+                      
+                          (setq char (aref line count))
+                          (eq (char-syntax char) ?\ ))))
+                  lines)
+      (incf count)
+      (setq char nil))
+
+    (if (= count 0)
+        str
+
+      (let ((result (mapconcat (lambda (line)
+                                 (if (>= count (length line))
+                                     line
+                                   (substring line count)))
+                               lines "\n"))
+            (oldpos -1)
+            (newpos -1))
+        ;; put back text properties to newlines
+        (while (setq newpos (string-match "\n" result (1+ newpos)))
+          (setq oldpos (string-match "\n" str (1+ oldpos)))
+          (assert oldpos nil "Assertion failure: Old newline not found.")
+          (put-text-property newpos (1+ newpos)
+                             'face (get-text-property oldpos 'face str)
+                             result))
+        result))))
+
+                
 (provide 'csense)
 ;;; csense.el ends here
