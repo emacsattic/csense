@@ -476,32 +476,38 @@ container, and return t."
              result))
          csense-cs-source-files)
 
-   ;; maybe it's a fully qualified class name in an assembly
-   ;;
-   ;; copy tree is done, so that destructive operations on the result
-   ;; do not affect the hash contents
-   (copy-tree (gethash class csense-cs-type-hash))
+   (let ((class-info
+          ;; maybe it's a fully qualified class name in an assembly
+          (gethash class csense-cs-type-hash)))
+     (unless class-info
+       ;; try usings
+       (save-excursion
+         (goto-char (point-min))
+         (while (and (not class-info)
+                     (re-search-forward (rx line-start (* space) 
+                                            "using" (+ space) 
+                                            (group (+ nonl)) (* space) ";")
+                                        nil t))
+           (let ((class-name (concat (match-string-no-properties 1) 
+                                     "." class)))
+             ;; handle aliases
+             (some (lambda (alias)
+                     (if (equal class-name (concat "System." (car alias)))
+                         (setq class-name (concat "System." (cdr alias)))))
+                   csense-cs-type-aliases)
 
-   ;; try usings
-   (let (class-info)
-     (save-excursion
-       (goto-char (point-min))
-       (while (and (not class-info)
-                   (re-search-forward (rx line-start (* space) 
-                                          "using" (+ space) 
-                                          (group (+ nonl)) (* space) ";")
-                                      nil t))
-         (let ((class-name (concat (match-string-no-properties 1) "." class)))
-           ;; handle aliases
-           (some (lambda (alias)
-                   (if (equal class-name (concat "System." (car alias)))
-                       (setq class-name (concat "System." (cdr alias)))))
-                 csense-cs-type-aliases)
-           ;; copy tree is done, so that destructive operations on the result
-           ;; do not affect the hash contents
-           (setq class-info 
-                 (copy-tree (gethash class-name csense-cs-type-hash))))))
-     class-info)
+             (setq class-info
+                   (copy-tree (gethash class-name csense-cs-type-hash)))))))
+
+     ;; copy tree is done, so that destructive operations on the result
+     ;; do not affect the hash contents
+     (setq class-info (copy-tree class-info))
+
+     ;; a link to the parent class is put into every member
+     (plist-put class-info
+                'members (mapcar (lambda (member)
+                                   (plist-put member 'class class-info))
+                                 (plist-get class-info 'members))))
 
    (error "Class '%s' not found. Are you perhaps missing an assembly?" class)))
 

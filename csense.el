@@ -28,6 +28,7 @@
 
 ;;; Code:
 
+(require 'etags)
 
 ;;; User configuration
 
@@ -67,7 +68,7 @@ must be a plist with the follwing values:")
   "Setup Code Sense for the current buffer."
   (interactive)
   (local-set-key (kbd "<f1>") 'csense-show-help)
-  (local-set-key (kbd "C-<f1>") 'csense-show-popup-help-for-symbol))
+  (local-set-key (kbd "C-<f1>") 'csense-go-to-definition))
 
 
 
@@ -81,6 +82,24 @@ must be a plist with the follwing values:")
     (if doc
         (csense-show-popup-help doc)
       (message "No help available."))))
+
+
+(defun csense-go-to-definition ()
+  "Go to definition of symbol at point."
+  (interactive)
+  (let* ((info (car (funcall csense-information-function))))
+    (if info
+        (if (plist-get info 'file)
+            (progn (ring-insert find-tag-marker-ring (point-marker))
+                   (switch-to-buffer (find-file (plist-get info 'file)))
+                   (goto-char (plist-get info 'pos)))
+
+          (if (plist-get info 'url)
+              (browse-url (plist-get info 'url))
+
+            (assert nil nil "Assertion failure: No file or url found.")))
+
+      (message "There is nothing at point."))))
 
 
 (defun csense-show-popup-help (message)
