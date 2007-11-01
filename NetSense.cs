@@ -95,7 +95,7 @@ namespace netsense
 								type = method.ReturnType.FullName;
 								
 								string signature = "";
-								extra = "";
+								extra = "\n\t\tparams (\n";
 								
 								foreach (ParameterInfo param in method.GetParameters())
 								{
@@ -106,10 +106,7 @@ namespace netsense
 										"\" type \"" + param.ParameterType + "\")\n";
 								}
 								
-								if (extra != "")
-									extra = "\n\t\tparams (\n" + extra + "\t\t\t)";
-								
-								extra += "\n\t\twhat method\n\t\t";
+								extra += "\t\t\t)\n\t\t";
 								
 								signature = "M:" + t.FullName + "." + member.Name +
 									(signature == "" ? "" : "(" + signature + ")");

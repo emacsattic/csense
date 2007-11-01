@@ -370,7 +370,7 @@ The return value is a list of plists."
           (let ((parent-info (csense-cs-get-information-for-symbol-at-point)))
             ;; in case of overloaded methods their return type must be
             ;; the same
-            (if (eq (plist-get (car parent-info) 'what) 'method)
+            (if (member 'params (car parent-info))
                 (let ((type (plist-get (car parent-info) 'type)))
                   (dolist (method-info (cdr parent-info))
                     (assert (equal type (plist-get method-info 'type))))))

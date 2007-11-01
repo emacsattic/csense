@@ -104,7 +104,7 @@ data for the CSense frontend."
                           " "
                           (plist-get info 'name)
 
-                          (if (eq (plist-get info 'what) 'method)
+                          (if (member 'params info)
                               (concat "("
                                       (mapconcat 
                                        (lambda (param)
