@@ -30,7 +30,7 @@ For release
   relevant class, instead of the point in the source code (what about
   primitive types?)
 
-- not just in functions
+- multi results
 
 
 Someday 

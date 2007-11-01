@@ -168,16 +168,13 @@ directory then it will be used as well.")
 
 (defun csense-cs-get-information-at-point ()
   "Return available information at point."
-  (if (not (csense-cs-get-function-info))
-      (error "The parser works only within functions. For now.")
-
-    (let ((char-syntax-after (char-syntax (char-after)))
-          (char-syntax-before (char-syntax (char-before))))
-      (if (or (eq char-syntax-before ?w)
-              (eq char-syntax-before ?_)
-              (eq char-syntax-after ?w)
-              (eq char-syntax-after ?_))
-        (csense-cs-get-information-for-symbol-at-point)))))
+  (let ((char-syntax-after (char-syntax (char-after)))
+        (char-syntax-before (char-syntax (char-before))))
+    (if (or (eq char-syntax-before ?w)
+            (eq char-syntax-before ?_)
+            (eq char-syntax-after ?w)
+            (eq char-syntax-after ?_))
+        (csense-cs-get-information-for-symbol-at-point))))
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
@@ -538,11 +535,12 @@ The plist values:
              ;; we're not interested in sibling scopes
              t
 
-           (if (save-excursion
-                 (forward-line -1)
-                 (looking-at (eval `(rx (* not-newline)
-                                        "class" (+ space)
-                                        ,@csense-cs-symbol-regexp))))
+           (if (and (plist-get result 'func-begin)
+                    (save-excursion
+                      (forward-line -1)
+                      (looking-at (eval `(rx (* not-newline)
+                                             "class" (+ space)
+                                             ,@csense-cs-symbol-regexp)))))
                (progn
                  (setq result (plist-put result 'class-begin open))
                  (setq result (plist-put result 'class-name
@@ -555,7 +553,7 @@ The plist values:
              ;; search further for containing class
              t))))
 
-      (if (plist-get result 'func-begin)
+      (if (plist-get result 'class-name)
           result))))
 
 
