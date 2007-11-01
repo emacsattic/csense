@@ -31,10 +31,18 @@ For release
 
 - static functions
 
+- help for members retrieved from source, and local, should show the
+  relevant class, instead of the point in the source code (what about
+  primitive types?)
+
+-  help on Regex comes up empty
+
+- local symbols with types from assembly jump to the symbol instead of
+  showing assembly help
 
 
-Someday
--------
+
+Someday -------
 
 - overloaded functions
 
