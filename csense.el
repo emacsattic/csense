@@ -36,23 +36,24 @@
   "Maximum length of lines in tooltips.")
 
 
-(defvar csense-tooltip-header-color "moccasin"
-  "Color of header lines in tooltips.")
-
-
-(defvar csense-tooltip-current-line-color "honeydew2"
-  "Color of the current line in tooltips for which information is shown.")
-
-
-(defvar csense-multiple-tooltip-indicator-color "lawn green"
-  "Color of the indicator field which shows the number of current
-  tooltip in case of multiple results.")
-
-
 (defvar csense-multi-tooltip-bindings
   `((,(kbd "<down>") . csense-multi-tooltip-next)
     (,(kbd "<up>") . csense-multi-tooltip-previous))
   "Keybindings for controlling multi tooltips.")
+
+
+(defface csense-tooltip-header-face
+  '((t (:background "moccasin"))) 
+  "Face for header lines in tooltips.")
+
+(defface csense-multiple-tooltip-indicator-face
+  '((t (:background "lawn green")))
+  "Face for indicator field which shows the number of current
+  tooltip in case of multiple results.")
+
+(defvar csense-tooltip-current-line-color "honeydew2"
+  "Color of the current line in tooltips for which information is shown.")
+
 
 ;;;----------------------------------------------------------------------------
 
@@ -284,17 +285,14 @@ beginning."
 
 
 (defun csense-color-header (str)
-  "Color first line of STR with color
-`csense-tooltip-header-color'."
+  "Color first line of STR with `csense-tooltip-header-face'."
   (let ((pos (string-match "\n" str)))
     (if (not pos)
         str
 
-      (concat (csense-color-string-background
-               (substring str 0 (1+ pos))
-               csense-tooltip-header-color)
+      (concat (propertize (substring str 0 (1+ pos))
+                          'face 'csense-tooltip-header-face)
               (substring str (1+ pos))))))
-
 
 
 (defun csense-remove-leading-whitespace (str)
@@ -353,13 +351,13 @@ can be selected by the user."
   (let ((count 0))
     (setq csense-multi-tooltip-texts 
           (mapcar (lambda (text)
-                    (concat (csense-color-string-background
+                    (concat (propertize
                              (concat " "
                                      (int-to-string (incf count))
                                      "/"
                                      (int-to-string (length texts))
                                      " ")
-                             csense-multiple-tooltip-indicator-color)
+                             'face 'csense-multiple-tooltip-indicator-face)
                             "\n" text))
                   texts)))
 

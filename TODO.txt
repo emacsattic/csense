@@ -30,8 +30,6 @@ For release
   relevant class, instead of the point in the source code (what about
   primitive types?)
 
-- multi results
-
 - url formatting should bemoved to csense-cs
 
 - bold curent params
@@ -39,6 +37,8 @@ For release
 - help for constructors
 
 - overloads from source too (implement inheritance first?)
+
+- parameter documentation
 
 
 Someday 
