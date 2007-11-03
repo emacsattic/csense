@@ -32,6 +32,8 @@ For release
 
 - auto help
 
+- sortng of completion candidates
+
 
 Someday 
 -------
