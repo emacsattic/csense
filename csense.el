@@ -44,6 +44,16 @@
   "Color of the current line in tooltips for which information is shown.")
 
 
+(defvar csense-multiple-tooltip-indicator-color "lawn green"
+  "Color of the indicator field which shows the number of current
+  tooltip in case of multiple results.")
+
+
+(defvar csense-multi-tooltip-bindings
+  `((,(kbd "<down>") . csense-multi-tooltip-next)
+    (,(kbd "<up>") . csense-multi-tooltip-previous))
+  "Keybindings for controlling multi tooltips.")
+
 ;;;----------------------------------------------------------------------------
 
 (defvar csense-information-function nil
@@ -75,12 +85,15 @@ must be a plist with the follwing values:")
 (defun csense-show-help ()
   "Do something clever at point."
   (interactive)
-  (let* ((info (funcall csense-information-function))
-         (doc (plist-get (car info) 'doc)))
-    (if (> (length info) 1)
-        (message "Multi"))
-    (if doc
-        (csense-show-popup-help doc)
+  (let* ((infos (funcall csense-information-function)))
+    (if infos
+        (let ((docs (mapcar (lambda (info)
+                              (plist-get info 'doc))
+                            infos)))                             
+          (if (> (length docs) 1)
+              (csense-show-multi-tooltip docs)
+            (csense-show-tooltip-at-pos (car docs))))
+         
       (message "No help available."))))
 
 
@@ -102,18 +115,20 @@ must be a plist with the follwing values:")
       (message "There is nothing at point."))))
 
 
-(defun csense-show-popup-help (message)
-  "Show MESSAGE in popup at point."
+(defun csense-show-tooltip-at-pos (message &optional x y)
+  "Show MESSAGE in popup at X;Y or at point if coordinates are
+not given."
   (let* ((old-propertize (symbol-function 'propertize))
          (x-max-tooltip-size '(120 . 40))
-         (lines (split-string message "\n"))
-         (tooltip-width (* (frame-char-width)
-                           (apply 'max (mapcar 'length lines))))
-         (tooltip-height (* (frame-char-height) (min (length lines)
-                                                     (cdr x-max-tooltip-size))))
+         (dimensions (csense-get-text-dimensions message))
+         (tooltip-width (car dimensions))
+         (tooltip-height (cdr dimensions))
          (xy (csense-calculate-popup-position tooltip-height tooltip-width))
-         (tooltip-frame-parameters (append `((left . ,(car xy))
-                                             (top . ,(cdr xy)))
+         (x (or x (car xy)))
+         (y (or y (cdr xy)))
+         (tooltip-hide-delay 600)
+         (tooltip-frame-parameters (append `((left . ,x)
+                                             (top . ,y))
                                            tooltip-frame-parameters)))
 
     ;; move the mouse cursor from the way
@@ -127,6 +142,15 @@ must be a plist with the follwing values:")
     (unwind-protect
         (tooltip-show message)
       (fset 'propertize old-propertize))))
+
+
+(defun csense-get-text-dimensions (text)
+  "Return text width and height in pixels."
+  (let* ((lines (split-string text "\n"))
+         (width (* (frame-char-width)
+                   (apply 'max (mapcar 'length lines))))
+         (height (* (frame-char-height) (length lines))))
+    (cons width height)))
 
 
 (defun csense-calculate-popup-position (height width)
@@ -305,6 +329,95 @@ beginning."
                              result))
         result))))
 
-                
+
+;; multi tooltip
+
+(defvar csense-multi-tooltip-texts nil
+  "List of texts shown in the current multi tooltip.")
+
+(defvar csense-multi-tooltip-current nil
+  "Index of current text shown in the tooltip. 0-based")
+
+(defvar csense-multi-tooltip-saved-keys nil
+  "Saved bindings for keys rebound by `csense-multi-tooltip-bindings'.")
+
+(defvar csense-multi-tooltip-position nil
+  "It's a list (X . Y) describing the position of the tooltip.")
+
+
+(defun csense-show-multi-tooltip (texts)
+  "Show several alternate texts in a tooltip. The current text
+can be selected by the user."
+  (let ((count 0))
+    (setq csense-multi-tooltip-texts 
+          (mapcar (lambda (text)
+                    (concat (csense-color-string-background
+                             (concat " "
+                                     (int-to-string (incf count))
+                                     "/"
+                                     (int-to-string (length texts))
+                                     " ")
+                             csense-multiple-tooltip-indicator-color)
+                            "\n" text))
+                  texts)))
+
+  (let ((dimensions (mapcar (lambda (text)
+                              (csense-get-text-dimensions text))
+                            csense-multi-tooltip-texts)))
+    (setq csense-multi-tooltip-position
+          (csense-calculate-popup-position 
+           (apply 'max (mapcar 'car dimensions))
+           (apply 'max (mapcar 'cdr dimensions)))))
+
+  (csense-multi-tooltip-show 0)
+
+  (setq csense-multi-tooltip-saved-keys nil)
+  (dolist (binding csense-multi-tooltip-bindings)
+    (let ((key (car binding))
+          (command (cdr binding)))
+      (push (cons key (lookup-key (current-local-map) key))
+            csense-multi-tooltip-saved-keys)
+      (define-key (current-local-map) key command)))
+
+  (add-hook 'pre-command-hook 'csense-multi-tooltip-pre-command))
+
+
+(defun csense-multi-tooltip-pre-command ()
+  "Pre-command hook for monitoring multi tooltips."
+  (unless (or (eq this-command 'csense-multi-tooltip-next)
+              (eq this-command 'csense-multi-tooltip-previous))
+    (remove-hook 'pre-command-hook 'csense-multi-tooltip-pre-command)
+
+    (dolist (binding csense-multi-tooltip-saved-keys)
+      (define-key (current-local-map) (car binding) (cdr binding)))))
+
+
+(defun csense-multi-tooltip-show (index)
+  "Show the INDEXth tooltip from `csense-multi-tooltip-texts'."
+  (setq csense-multi-tooltip-current index)
+  (csense-show-tooltip-at-pos (nth index csense-multi-tooltip-texts)
+                              (car csense-multi-tooltip-position)
+                              (cdr csense-multi-tooltip-position)))
+
+
+(defun csense-multi-tooltip-next ()
+  "Show next tooltip."
+  (interactive)
+  (csense-multi-tooltip-show
+   (let ((next (1+ csense-multi-tooltip-current)))    
+     (if (= next (length csense-multi-tooltip-texts))
+         0
+       next))))
+
+
+(defun csense-multi-tooltip-previous ()
+  "Show previous tooltip."
+  (interactive)
+  (csense-multi-tooltip-show
+   (1- (if (= csense-multi-tooltip-current 0)
+           (length csense-multi-tooltip-texts)
+         csense-multi-tooltip-current))))
+
+
 (provide 'csense)
 ;;; csense.el ends here
