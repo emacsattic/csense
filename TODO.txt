@@ -18,8 +18,6 @@ For release
 
 - caching of assemblies, source class lookups
 
-- bold references in doc
-
 - document how the backend works
 
 - check all forward/backward-sexps for error checking

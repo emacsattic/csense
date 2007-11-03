@@ -32,10 +32,17 @@
 (require 'csense-cs)
 
 
+;;; User configuration
+
 (defconst csense-cs-frontend-msdn-url
   "http://msdn2.microsoft.com/en-us/library/%s.aspx"
   "URL to MSDN documentation.")
 
+(defface csense-cs-frontend-reference-face
+  '((t (:bold t)))
+  "Face for references in documentation.")
+
+;;;----------------------------------------------------------------------------
 
 (add-hook 'csharp-mode-hook 'csense-cs-frontend-setup)
   
@@ -119,12 +126,21 @@ data for the CSense frontend."
                            ;; remove generics
                            (replace-regexp-in-string
                             "`[0-9]+" ""
-                            ;; remove references
-                            (replace-regexp-in-string 
-                             (rx "<see cref=\"" nonl ":" 
-                                 (group (*? nonl)) "\"></see>")
-                             "\\1"
-                             doc))
+                            ;; format references
+                            (let ((pos -1))
+                              (while (setq pos (string-match 
+                                                (rx "<see cref=\"" nonl ":" 
+                                                    (group (*? nonl))
+                                                    "\"></see>")
+                                                doc (1+ pos)))
+                                (setq doc
+                                      (replace-match 
+                                       (propertize 
+                                        (match-string 1 doc) 
+                                        'face
+                                        'csense-cs-frontend-reference-face)
+                                       nil nil doc)))
+                              doc))
                          "No documentation")))
 
          ;; replace aliased types with their shorter version
