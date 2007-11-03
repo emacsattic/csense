@@ -126,13 +126,11 @@ not given."
                (let* ((dimensions (csense-get-text-dimensions message))
                       (tooltip-width (car dimensions))
                       (tooltip-height (cdr dimensions)))
-                 (csense-calculate-popup-position tooltip-height
-                                                  tooltip-width))))
-         (x (or x (car xy)))
-         (y (or y (cdr xy)))
+                 (csense-calculate-popup-position tooltip-width
+                                                  tooltip-height))))
          (tooltip-hide-delay 600)
-         (tooltip-frame-parameters (append `((left . ,x)
-                                             (top . ,y))
+         (tooltip-frame-parameters (append `((left . ,(car xy))
+                                             (top . ,(cdr xy)))
                                            tooltip-frame-parameters)))
 
     ;; move the mouse cursor from the way
@@ -157,7 +155,7 @@ not given."
     (cons width height)))
 
 
-(defun csense-calculate-popup-position (height width)
+(defun csense-calculate-popup-position (width height)
   "Calculate pixel position of popup at point with size HEIGHT
 and WIDTH in characters."
   (let* ((point-pos (posn-at-point))
@@ -399,7 +397,9 @@ can be selected by the user."
 (defun csense-multi-tooltip-show (index)
   "Show the INDEXth tooltip from `csense-multi-tooltip-texts'."
   (setq csense-multi-tooltip-current index)
-  (csense-show-tooltip-at-pos (nth index csense-multi-tooltip-texts)))
+  (csense-show-tooltip-at-pos (nth index csense-multi-tooltip-texts)
+                              (car csense-multi-tooltip-position)
+                              (cdr csense-multi-tooltip-position)))
 
 
 (defun csense-multi-tooltip-next ()
