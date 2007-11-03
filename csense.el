@@ -154,7 +154,11 @@ must be a plist with the follwing values:")
   (save-excursion
     (skip-syntax-backward "w_")
     (setq csense-completion-symbol-beginning-position (point))
-    (setq csense-completion-candidates (funcall csense-completion-function)))
+    (setq csense-completion-candidates
+          (sort (funcall csense-completion-function)
+                (lambda (first second)
+                  (string< (downcase (plist-get first 'name))
+                           (downcase (plist-get second 'name)))))))
   (if csense-completion-candidates
       (csense-show-completion-for-point)
     (message "No completions for symbol before point.")))
