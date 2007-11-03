@@ -34,6 +34,8 @@ For release
 
 - url formatting should bemoved to csense-cs
 
+- bold curent params
+
 
 Someday 
 -------
