@@ -123,6 +123,15 @@ must be a plist with the follwing values:")
       (message "There is nothing at point."))))
 
 
+(defun csense-complete ()
+  "Do completion at point."
+  (interactive)
+  (save-excursion
+    (skip-syntax-backward "w_")
+    (let ((completions (funcall csense-completion-function)))
+      (print completions))))
+
+
 (defun csense-show-tooltip-at-pos (message &optional x y)
   "Show MESSAGE in popup at X;Y or at point if coordinates are
 not given."

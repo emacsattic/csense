@@ -179,12 +179,17 @@ directory then it will be used as well.")
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
   "Return list of possible completions for symbol at point."
-  (save-excursion
-    (skip-syntax-backward "w_")
-    (if (csense-cs-backward-to-container)
-        (csense-get-members-for-symbol 
-         (csense-cs-get-information-for-symbol-at-point))
-      (csense-cs-get-local-symbol-information-at-point))))
+  (if (csense-cs-get-function-info)
+      (save-excursion
+        (if (csense-cs-backward-to-container)
+            (csense-get-members-for-symbol
+             ;; assuming only overloaded functions return more than
+             ;; one value (true?), we'll take the first value
+             ;; automatically
+             (car (csense-cs-get-information-for-symbol-at-point)))
+          (csense-cs-get-local-symbol-information-at-point)))
+
+    (error "Completion works only within functions. For now.")))
 
 
 (defun csense-cs-get-local-symbol-information-at-point ()
