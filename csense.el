@@ -120,10 +120,14 @@ must be a plist with the follwing values:")
 not given."
   (let* ((old-propertize (symbol-function 'propertize))
          (x-max-tooltip-size '(120 . 40))
-         (dimensions (csense-get-text-dimensions message))
-         (tooltip-width (car dimensions))
-         (tooltip-height (cdr dimensions))
-         (xy (csense-calculate-popup-position tooltip-height tooltip-width))
+         (xy (if x
+                 (cons x y)
+
+               (let* ((dimensions (csense-get-text-dimensions message))
+                      (tooltip-width (car dimensions))
+                      (tooltip-height (cdr dimensions)))
+                 (csense-calculate-popup-position tooltip-height
+                                                  tooltip-width))))
          (x (or x (car xy)))
          (y (or y (cdr xy)))
          (tooltip-hide-delay 600)
@@ -395,9 +399,7 @@ can be selected by the user."
 (defun csense-multi-tooltip-show (index)
   "Show the INDEXth tooltip from `csense-multi-tooltip-texts'."
   (setq csense-multi-tooltip-current index)
-  (csense-show-tooltip-at-pos (nth index csense-multi-tooltip-texts)
-                              (car csense-multi-tooltip-position)
-                              (cdr csense-multi-tooltip-position)))
+  (csense-show-tooltip-at-pos (nth index csense-multi-tooltip-texts)))
 
 
 (defun csense-multi-tooltip-next ()
