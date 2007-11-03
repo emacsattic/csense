@@ -379,6 +379,12 @@ can be selected by the user."
             csense-multi-tooltip-saved-keys)
       (define-key (current-local-map) key command)))
 
+  (message 
+   (substitute-command-keys 
+    (concat "Use keys \\[csense-multi-tooltip-previous]/"
+            "\\[csense-multi-tooltip-next] to display "
+            "other help texts in tooltip.")))
+
   (add-hook 'pre-command-hook 'csense-multi-tooltip-pre-command))
 
 
