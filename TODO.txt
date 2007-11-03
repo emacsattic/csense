@@ -4,8 +4,6 @@ Things to do
 For release
 -----------
 
-- function doc for generic methods (e.g. List.Add)
-
 - function template (better word, signature?)
 
 - handling scopes without blocks (foreach, for, etc)
@@ -22,21 +20,17 @@ For release
 
 - check all forward/backward-sexps for error checking
 
-- static functions
-
-- help for members retrieved from source, and local, should show the
-  relevant class, instead of the point in the source code (what about
-  primitive types?)
-
 - url formatting should bemoved to csense-cs
 
-- bold curent params
+- bold current params
 
 - help for constructors
 
 - overloads from source too (implement inheritance first?)
 
 - parameter documentation
+
+- auto help
 
 
 Someday 
@@ -62,3 +56,8 @@ Someday
 - default values
 
 - static functions
+
+- function doc for generic methods (e.g. List.Add)
+
+- tooltip is hidden immediately if mouse cursor is in they way, though
+  the cursor is moved away first. why is that?
