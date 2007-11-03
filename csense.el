@@ -36,6 +36,14 @@
   "Maximum length of lines in tooltips.")
 
 
+(defvar csense-bindings
+  `((,(kbd "<f1>") . csense-show-help)
+    (,(kbd "C-<f1>") . csense-go-to-definition)
+    (,(kbd "C-.") . csense-complete))
+  "Keybindings for commond Code Sense tasks.")
+
+
+;; this should be a keymap, but I'm lazy
 (defvar csense-multi-tooltip-bindings
   `((,(kbd "<down>") . csense-multi-tooltip-next)
     (,(kbd "<up>") . csense-multi-tooltip-previous))
@@ -78,9 +86,8 @@ must be a plist with the follwing values:")
 (defun csense-setup ()
   "Setup Code Sense for the current buffer."
   (interactive)
-  (local-set-key (kbd "<f1>") 'csense-show-help)
-  (local-set-key (kbd "C-<f1>") 'csense-go-to-definition))
-
+  (dolist (binding csense-bindings)
+    (local-set-key (car binding) (cdr binding))))
 
 
 (defun csense-show-help ()
