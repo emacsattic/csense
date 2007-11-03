@@ -50,12 +50,12 @@
 (defun csense-cs-frontend-setup ()
   "Setup CodeSense for the current C# buffer."
   (setq csense-information-function 
-        'csense-cs-frontend-proxy)
+        'csense-cs-frontend-information-proxy)
   (setq csense-completion-function 
-        'csense-cs-get-completions-for-symbol-at-point))
+        'csense-cs-frontend-completion-proxy))
 
 
-(defun csense-cs-frontend-proxy ()
+(defun csense-cs-frontend-information-proxy ()
   "Perform various modifications, before passing the retrieved
 data for the CSense frontend."
   (mapcar (lambda (info)
@@ -83,6 +83,14 @@ data for the CSense frontend."
             info)
                                         
           (csense-cs-get-information-at-point)))
+
+
+(defun csense-cs-frontend-completion-proxy ()
+  "Perform various modifications, before passing the retrieved
+completion data for the CSense frontend."
+  (mapcar (lambda (info)
+            (csense-cs-frontend-doc-formatter info))                                        
+          (csense-cs-get-completions-for-symbol-at-point)))
 
 
 (defun csense-cs-frontend-doc-formatter (info)

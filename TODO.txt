@@ -32,7 +32,13 @@ For release
 
 - auto help
 
-- sortng of completion candidates
+- indicate type of item in tooltip
+
+- fix tooltip for completions
+
+- no dup elems in completions
+
+- constructors in completions
 
 
 Someday 

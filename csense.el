@@ -365,35 +365,24 @@ must be a plist with the follwing values:")
           (if (eobp)
               (forward-line -1))
           (csense-mark-current-line))
-      (select-frame orig-frame))))
+      (select-frame orig-frame)))
   
-;  (with-current-buffer csense-completions-buffer    
-;    (unless (eq (overlay-start csense-selection-overlay)
-;                (overlay-end csense-selection-overlay))
-;      (let* ((candidate (get-text-property (line-beginning-position)
-;                                           'csense-completion-candidate))
-;             (marker (or (plist-get candidate 'definition)
-;                         (plist-get candidate 'declaration))))
-;        (if (and marker
-;                 (sit-for 0.5))
-;            (let ((orig-frame (selected-frame)))
-;              (unwind-protect
-;                  (progn
-;                    (unless (markerp marker)
-;                      (setq marker
-;                            (with-current-buffer (find-file-noselect
-;                                                  (plist-get marker 'file))
-;                              (save-excursion
-;                                (goto-char (plist-get marker 'pos))
-;                                (search-forward (plist-get candidate 'name) nil t)
-;                                (csense-create-point-marker)))))
-;                    (select-frame csense-completion-frame)
-;                    (save-excursion
-;                      (end-of-line)
-;                      (csense-show-popup-help
-;                       (csense-get-code-context-from-marker marker))))
-;
-;                (select-frame orig-frame))))))))
+  (with-current-buffer csense-completions-buffer    
+    (unless (eq (overlay-start csense-selection-overlay)
+                (overlay-end csense-selection-overlay))
+      (let ((candidate (get-text-property (line-beginning-position)
+                                          'csense-completion-candidate)))
+        (if (and candidate
+                 (sit-for 0.5))
+            (let ((orig-frame (selected-frame)))
+              (unwind-protect
+                  (message (concat "This should be a tooltip, but posn-at-point "
+                                   " returns nil for some reason (emacs-bug?)\n\n"
+                                   (or (plist-get candidate 'doc)
+                                       "No documentation.")))
+;                  (csense-show-tooltip-at-pos (or (plist-get candidate 'doc)
+;                                                  "No documentation."))
+                (select-frame orig-frame))))))))
 
 
 (defun csense-completion-insert-selection ()
