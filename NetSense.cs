@@ -61,7 +61,7 @@ namespace netsense
 
 				foreach (Type t in asm.GetTypes())
 				{
-					//if (t.FullName != "System.String")
+					//if (t.FullName != "System.Console")
 					//	continue;
 					
 					Console.WriteLine("(name \"" +
@@ -115,6 +115,7 @@ namespace netsense
 								break;
 								
 							case MemberTypes.Property:
+								type = ((PropertyInfo)member).PropertyType.FullName;
 								docs.TryGetValue("P:" + t.FullName + "." + member.Name, out doc);
 								break;
 								
@@ -154,7 +155,7 @@ namespace netsense
 				Console.WriteLine(")");
 			}
 
-			Console.ReadLine();
+			//Console.ReadLine();
 		}
 
 		static string qoute(string text)

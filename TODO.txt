@@ -36,9 +36,15 @@ For release
 
 - bold curent params
 
+- help for constructors
+
+- overloads from source too (implement inheritance first?)
+
 
 Someday 
 -------
+
+- casting
 
 - overloaded functions
 
