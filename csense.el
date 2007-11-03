@@ -83,6 +83,31 @@ must be a plist with the follwing values:")
 (make-variable-buffer-local 'csense-completion-function)
 
 
+(defvar csense-completion-candidates nil
+  "List of candidates for the current completion.")
+
+(defvar csense-completion-symbol-beginning-position nil
+  "Beginning position of the symbol currently being completed.")
+
+(defvar csense-completion-frame nil
+  "The frame showing the completion list.")
+
+(defvar csense-completions-buffer "*csense-completions*"
+  "Buffer holding the completions.")
+
+(defvar csense-selection-overlay nil
+  "Overlay used to highligh the current selection.")
+
+(defvar csense-completion-just-started nil
+  "Used to prevent the post command hook to kick in when the
+  completion list is shown for the first time.")
+
+(defvar csense-completion-editing-commands
+  '(self-insert-command
+    c-electric-backspace)
+  "These commands can be used during completion to edit the pattern.")
+
+
 (defun csense-setup ()
   "Setup Code Sense for the current buffer."
   (interactive)
@@ -128,8 +153,257 @@ must be a plist with the follwing values:")
   (interactive)
   (save-excursion
     (skip-syntax-backward "w_")
-    (let ((completions (funcall csense-completion-function)))
-      (print completions))))
+    (setq csense-completion-symbol-beginning-position (point))
+    (setq csense-completion-candidates (funcall csense-completion-function))
+    (if csense-completion-candidates
+        (csense-show-completion-for-point)
+      (message "No completions for symbol before point."))))
+
+
+(defun csense-show-completion-for-point ()
+  (let* ((maxlinelen 
+          (apply 'max (mapcar (lambda (candidate)
+                                (length (plist-get candidate 'name)))
+                              csense-completion-candidates)))
+         (width (max (+ maxlinelen 2) ; padding
+                     15))
+         (height (max (min (length csense-completion-candidates) 20) 5))
+         (pixel-width (* width (frame-char-width)))
+         (pixel-height (* 
+                        ;; let's say the titlebar has the same
+                        ;; height as a text line
+                        (1+ height)
+                        (frame-char-height)))
+         (position (csense-calculate-popup-position pixel-height
+                                                      pixel-width))
+         (frame-params (list (cons 'top             (cdr position))
+                             (cons 'left            (car position))
+                             (cons 'width           width)
+                             (cons 'height          height)
+                             (cons 'minibuffer      nil)
+                             (cons 'menu-bar-lines  0)
+                             (cons 'tool-bar-lines  0)
+                             (cons 'title           "Completions")))
+         (orig-frame (selected-frame)))
+
+    (if (not csense-completion-frame)
+        (setq csense-completion-frame (make-frame frame-params))
+
+      (modify-frame-parameters csense-completion-frame frame-params)
+      (make-frame-visible csense-completion-frame))
+
+    (select-frame csense-completion-frame)
+    (switch-to-buffer csense-completions-buffer)
+    (setq cursor-type nil)
+    (setq mode-line-format nil)
+    (set-window-fringes nil 0 0)
+    (if csense-selection-overlay
+        ;; make sure the overlay belongs to the completion buffer if
+        ;; it's newly created
+        (move-overlay csense-selection-overlay (point-min) (point-min))
+
+      (setq csense-selection-overlay 
+            (make-overlay (point-min) (point-min)))
+      (overlay-put csense-selection-overlay 'face 'highlight))
+ 
+    (redirect-frame-focus csense-completion-frame orig-frame)
+    (select-frame orig-frame)
+
+    (add-hook 'pre-command-hook 'csense-pre-command)
+    (add-hook 'post-command-hook 'csense-post-command))
+
+    (setq csense-saved-keys nil)
+    (dolist (binding `((,(kbd "<down>") . csense-next-line)
+                       (,(kbd "<up>") . csense-previous-line)
+                       (,(kbd "<next>") . csense-next-page)
+                       (,(kbd "<prior>") . csense-previous-page)
+                       (,(kbd "<ESC>") . csense-completion-cancel)
+                       (,(kbd "<RET>") . csense-completion-insert-selection)))
+      (let ((key (car binding))
+            (command (cdr binding)))
+        (push (cons key (lookup-key (current-local-map) key))
+              csense-saved-keys)
+        (define-key (current-local-map) key command)))
+
+    (csense-update-completion-list)
+
+    (setq csense-completion-just-started t))
+
+
+(defun csense-pre-command ()
+  (unless (or (eq this-command 'handle-switch-frame)
+              (memq this-command csense-completion-editing-commands)
+              (get this-command 'csense-allowed-during-completion))
+   (csense-completion-cleanup)))
+
+
+(defun csense-post-command ()
+  (if csense-completion-just-started
+      (setq csense-completion-just-started nil)
+
+    (if (or (< (point) csense-completion-symbol-beginning-position)
+            (and (eq this-command 'self-insert-command)
+                 (let ((syntax (char-syntax (char-before))))
+                   (not (or (eq syntax ?w)
+                            (eq syntax ?_))))))
+        (csense-completion-cleanup)
+
+      (if (memq this-command csense-completion-editing-commands)
+          (csense-update-completion-list)))))
+
+
+(defun csense-update-completion-list ()
+  (let* ((orig-frame (selected-frame))
+         (filter (if (eq (selected-frame) csense-completion-frame)
+                     ""
+                   (downcase (buffer-substring 
+                              csense-completion-symbol-beginning-position
+                              (point)))))
+         (len (length filter)))
+    (unwind-protect
+        (progn
+          (select-frame csense-completion-frame)
+          (switch-to-buffer csense-completions-buffer)
+          (erase-buffer)
+
+          (dolist (candidate csense-completion-candidates)
+            (when (or (equal "" filter)
+                      (string-match filter (plist-get candidate 'name)))
+              (let ((start (point)))                      
+                (let ((start (point)))                      
+                  (insert (plist-get candidate 'name) "\n")
+                  (put-text-property start (1+ start)
+                                     'csense-completion-candidate candidate)))))
+
+
+          (goto-char (point-min))
+          (csense-previous-line))
+
+      (select-frame orig-frame))))
+
+
+(defun csense-completion-cleanup ()
+  (remove-hook 'pre-command-hook 'csense-pre-command)
+  (remove-hook 'post-command-hook 'csense-post-command)
+  (make-frame-invisible csense-completion-frame)
+
+  (dolist (binding csense-saved-keys)
+    (define-key (current-local-map) (car binding) (cdr binding)))
+
+  (dolist (candidates-info csense-completion-candidates)
+    (dolist (candidate (plist-get candidates-info 'candidates))
+      (dolist (elem candidate)
+        (if (markerp elem)
+            (move-marker elem nil)))))
+
+  (tooltip-hide)
+
+  (with-current-buffer csense-completions-buffer
+    (setq cursor-type t)
+    (kill-local-variable 'mode-line-format)))
+
+
+(defun csense-mark-current-line ()
+  (let ((orig-frame (selected-frame)))
+    (unwind-protect
+        (progn          
+          (select-frame csense-completion-frame)
+          (move-overlay csense-selection-overlay
+                        (line-beginning-position)
+                        (1+ (line-end-position))))
+      (select-frame orig-frame))))
+
+
+(defun csense-next-line ()
+  (interactive)
+  (csense-move-selection (lambda () (forward-line 1))))
+
+(put 'csense-next-line 'csense-allowed-during-completion t)
+
+
+(defun csense-previous-line ()
+  (interactive)
+  (csense-move-selection (lambda () (forward-line -1))))
+
+(put 'csense-previous-line 'csense-allowed-during-completion t)
+
+
+(defun csense-next-page ()
+  (interactive)
+  (csense-move-selection (lambda ()
+                               (condition-case nil
+                                   (scroll-up)
+                                 (end-of-buffer (goto-char (point-max)))))))
+
+(put 'csense-next-page 'csense-allowed-during-completion t)
+
+
+(defun csense-previous-page ()
+  (interactive)
+  (csense-move-selection (lambda ()
+                               (condition-case nil
+                                   (scroll-down)
+                                 (beginning-of-buffer (goto-char (point-min)))))))
+
+(put 'csense-previous-page 'csense-allowed-during-completion t)
+
+
+(defun csense-move-selection (func)
+  (interactive)
+
+  (tooltip-hide)
+
+  (let ((orig-frame (selected-frame)))
+    (unwind-protect
+        (progn
+          (select-frame csense-completion-frame)
+          (funcall func)
+          (if (eobp)
+              (forward-line -1))
+          (csense-mark-current-line))
+      (select-frame orig-frame))))
+  
+;  (with-current-buffer csense-completions-buffer    
+;    (unless (eq (overlay-start csense-selection-overlay)
+;                (overlay-end csense-selection-overlay))
+;      (let* ((candidate (get-text-property (line-beginning-position)
+;                                           'csense-completion-candidate))
+;             (marker (or (plist-get candidate 'definition)
+;                         (plist-get candidate 'declaration))))
+;        (if (and marker
+;                 (sit-for 0.5))
+;            (let ((orig-frame (selected-frame)))
+;              (unwind-protect
+;                  (progn
+;                    (unless (markerp marker)
+;                      (setq marker
+;                            (with-current-buffer (find-file-noselect
+;                                                  (plist-get marker 'file))
+;                              (save-excursion
+;                                (goto-char (plist-get marker 'pos))
+;                                (search-forward (plist-get candidate 'name) nil t)
+;                                (csense-create-point-marker)))))
+;                    (select-frame csense-completion-frame)
+;                    (save-excursion
+;                      (end-of-line)
+;                      (csense-show-popup-help
+;                       (csense-get-code-context-from-marker marker))))
+;
+;                (select-frame orig-frame))))))))
+
+
+(defun csense-completion-insert-selection ()
+  (interactive)
+  (let ((candidate (with-current-buffer csense-completions-buffer
+                     (get-text-property (line-beginning-position)
+                                        'csense-completion-candidate))))
+    (delete-region csense-completion-symbol-beginning-position (point))
+    (insert (plist-get candidate 'name))))
+
+
+(defun csense-completion-cancel ()
+  ;; post command hook will take care of it
+  (interactive))
 
 
 (defun csense-show-tooltip-at-pos (message &optional x y)
