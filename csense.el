@@ -154,10 +154,10 @@ must be a plist with the follwing values:")
   (save-excursion
     (skip-syntax-backward "w_")
     (setq csense-completion-symbol-beginning-position (point))
-    (setq csense-completion-candidates (funcall csense-completion-function))
-    (if csense-completion-candidates
-        (csense-show-completion-for-point)
-      (message "No completions for symbol before point."))))
+    (setq csense-completion-candidates (funcall csense-completion-function)))
+  (if csense-completion-candidates
+      (csense-show-completion-for-point)
+    (message "No completions for symbol before point.")))
 
 
 (defun csense-show-completion-for-point ()
@@ -174,8 +174,8 @@ must be a plist with the follwing values:")
                         ;; height as a text line
                         (1+ height)
                         (frame-char-height)))
-         (position (csense-calculate-popup-position pixel-height
-                                                      pixel-width))
+         (position (csense-calculate-popup-position pixel-width
+                                                    pixel-height))
          (frame-params (list (cons 'top             (cdr position))
                              (cons 'left            (car position))
                              (cons 'width           width)
@@ -397,8 +397,9 @@ must be a plist with the follwing values:")
   (let ((candidate (with-current-buffer csense-completions-buffer
                      (get-text-property (line-beginning-position)
                                         'csense-completion-candidate))))
-    (delete-region csense-completion-symbol-beginning-position (point))
-    (insert (plist-get candidate 'name))))
+    (when candidate
+      (delete-region csense-completion-symbol-beginning-position (point))
+      (insert (plist-get candidate 'name)))))
 
 
 (defun csense-completion-cancel ()
