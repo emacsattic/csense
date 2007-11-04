@@ -88,6 +88,12 @@ namespace netsense
 						
 						switch (member.MemberType)
 						{
+							case MemberTypes.Constructor:
+								// skip class constructors
+								if (member.Name == ".cctor")
+									continue;
+								break;
+								
 							case MemberTypes.Method:
 								MethodInfo method = ((MethodInfo)member);
 								if (skipMethod(method) || method.IsSpecialName)
