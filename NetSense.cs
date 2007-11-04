@@ -92,6 +92,9 @@ namespace netsense
 								// skip class constructors
 								if (member.Name == ".cctor")
 									continue;
+								// and constructors for the time being
+								if (member.Name == ".ctor")
+									continue;
 								break;
 								
 							case MemberTypes.Method:
