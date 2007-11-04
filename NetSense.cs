@@ -61,7 +61,7 @@ namespace netsense
 
 				foreach (Type t in asm.GetTypes())
 				{
-					//if (t.FullName != "System.Exception")
+					//if (t.FullName != "System.String")
 					//	continue;
 					
 					Console.WriteLine("(name \"" +
@@ -90,8 +90,7 @@ namespace netsense
 						{
 							case MemberTypes.Method:
 								MethodInfo method = ((MethodInfo)member);
-								if (method.IsPrivate || method.IsAssembly ||
-								    method.IsSpecialName)
+								if (skipMethod(method) || method.IsSpecialName)
 									continue;
 								type = method.ReturnType.FullName;
 								
@@ -116,7 +115,17 @@ namespace netsense
 								break;
 								
 							case MemberTypes.Property:
-								type = ((PropertyInfo)member).PropertyType.FullName;
+								PropertyInfo property = (PropertyInfo)member;
+								
+								// process the property only if either the get or 
+								// the set method is accessible from the outside
+								if (!((property.GetGetMethod() != null &&
+								       !skipMethod(property.GetGetMethod())) ||
+								      (property.GetSetMethod() != null &&
+								       !skipMethod(property.GetSetMethod()))))
+									continue;
+								
+								type = property.PropertyType.FullName;
 								docs.TryGetValue("P:" + t.FullName + "." + member.Name, out doc);
 								break;
 								
@@ -157,6 +166,11 @@ namespace netsense
 			}
 
 			//Console.ReadLine();
+		}
+
+		static bool skipMethod(MethodInfo method)
+		{
+			return method.IsPrivate || method.IsAssembly;
 		}
 
 		static string qoute(string text)
