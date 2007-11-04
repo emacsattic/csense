@@ -376,12 +376,12 @@ must be a plist with the follwing values:")
                  (sit-for 0.5))
             (let ((orig-frame (selected-frame)))
               (unwind-protect
-                  (message (concat "This should be a tooltip, but posn-at-point "
-                                   " returns nil for some reason (emacs-bug?)\n\n"
-                                   (or (plist-get candidate 'doc)
-                                       "No documentation.")))
-;                  (csense-show-tooltip-at-pos (or (plist-get candidate 'doc)
-;                                                  "No documentation."))
+                  (progn
+                    (select-frame csense-completion-frame)
+                    (save-excursion
+                      (end-of-line)
+                      (csense-show-tooltip-at-pos (or (plist-get candidate 'doc)
+                                                      "No documentation.")))))
                 (select-frame orig-frame))))))))
 
 
