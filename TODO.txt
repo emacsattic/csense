@@ -32,8 +32,6 @@ For release
 
 - auto help
 
-- no dup elems in completions
-
 - constructors in completions
 
 

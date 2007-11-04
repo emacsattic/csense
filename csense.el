@@ -169,6 +169,47 @@ must be a plist with the follwing values:")
                 (lambda (first second)
                   (string< (downcase (plist-get first 'name))
                            (downcase (plist-get second 'name)))))))
+
+  ;; collapsed items with the same name into a single item
+  ;; the list must already be sorted here
+  (let (collapsed)
+    (setq csense-completion-candidates
+          (nreverse                     ; keep the sort order
+           (reduce (lambda (result item)
+                     (if (equal (plist-get (car result) 'name)
+                                (plist-get item 'name))
+                         ;; I tried to do it within the reduce itself,
+                         ;; but probably due to the modifications of
+                         ;; the currently reduced list it got into an
+                         ;; infinite loop or something
+                         (let ((count (assoc (plist-get item 'name) collapsed)))
+                           (if count
+                               (setcdr count (1+ (cdr count)))
+                             (push (cons (plist-get item 'name) 1)
+                                   collapsed))
+                           result)
+                       (cons item result)))
+                   `(() ,@csense-completion-candidates))))
+
+    ;; add count for collapsed items
+    (setq csense-completion-candidates
+          (mapcar (lambda (candidate)
+                    (let ((count (assoc-default (plist-get candidate 'name)
+                                                collapsed)))
+                      (if (and count
+                               (plist-get candidate 'doc))
+                          (plist-put candidate 
+                                     'doc
+                                     (concat (propertize
+                                              (concat " + " 
+                                                      (int-to-string count)
+                                                      " variants ")
+                                              'face
+                                              'csense-multiple-tooltip-indicator-face)
+                                             "\n" (plist-get candidate 'doc)))
+                        candidate)))
+                  csense-completion-candidates)))
+
   (if csense-completion-candidates
       (csense-show-completion-for-point)
     (message "No completions for symbol before point.")))
