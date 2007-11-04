@@ -34,6 +34,10 @@ For release
 
 - constructors in completions
 
+- properties with signatures, eg: P:System.String.Chars(System.Int32)
+
+- check if everything is having a documentation, except generic stuff
+
 
 Someday 
 -------
