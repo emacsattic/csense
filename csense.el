@@ -213,14 +213,14 @@ must be a plist with the follwing values:")
     (redirect-frame-focus csense-completion-frame orig-frame)
     (select-frame orig-frame)
 
-    (add-hook 'pre-command-hook 'csense-pre-command)
-    (add-hook 'post-command-hook 'csense-post-command))
+    (add-hook 'pre-command-hook 'csense-completion-pre-command)
+    (add-hook 'post-command-hook 'csense-completion-post-command))
 
     (setq csense-saved-keys nil)
-    (dolist (binding `((,(kbd "<down>") . csense-next-line)
-                       (,(kbd "<up>") . csense-previous-line)
-                       (,(kbd "<next>") . csense-next-page)
-                       (,(kbd "<prior>") . csense-previous-page)
+    (dolist (binding `((,(kbd "<down>") . csense-completion-next-line)
+                       (,(kbd "<up>") . csense-completion-previous-line)
+                       (,(kbd "<next>") . csense-completion-next-page)
+                       (,(kbd "<prior>") . csense-completion-previous-page)
                        (,(kbd "<ESC>") . csense-completion-cancel)
                        (,(kbd "<RET>") . csense-completion-insert-selection)))
       (let ((key (car binding))
@@ -234,14 +234,19 @@ must be a plist with the follwing values:")
     (setq csense-completion-just-started t))
 
 
-(defun csense-pre-command ()
+(defun csense-completion-pre-command ()
+  "Guard function which terminates the completion if any other
+command is used than the allowed ones."
   (unless (or (eq this-command 'handle-switch-frame)
               (memq this-command csense-completion-editing-commands)
               (get this-command 'csense-allowed-during-completion))
    (csense-completion-cleanup)))
 
 
-(defun csense-post-command ()
+(defun csense-completion-post-command ()
+  "Guard function which updates the completion list after typing,
+or terminates the completion if any other command is used than
+the allowed ones."
   (if csense-completion-just-started
       (setq csense-completion-just-started nil)
 
@@ -257,6 +262,7 @@ must be a plist with the follwing values:")
 
 
 (defun csense-update-completion-list ()
+  "Update the displayed completion list."
   (let* ((orig-frame (selected-frame))
          (filter (if (eq (selected-frame) csense-completion-frame)
                      ""
@@ -281,14 +287,15 @@ must be a plist with the follwing values:")
 
 
           (goto-char (point-min))
-          (csense-previous-line))
+          (csense-completion-previous-line))
 
       (select-frame orig-frame))))
 
 
 (defun csense-completion-cleanup ()
-  (remove-hook 'pre-command-hook 'csense-pre-command)
-  (remove-hook 'post-command-hook 'csense-post-command)
+  "Hide the completion frame and restore keybindings."
+  (remove-hook 'pre-command-hook 'csense-completion-pre-command)
+  (remove-hook 'post-command-hook 'csense-completion-post-command)
   (make-frame-invisible csense-completion-frame)
 
   (dolist (binding csense-saved-keys)
@@ -307,7 +314,8 @@ must be a plist with the follwing values:")
     (kill-local-variable 'mode-line-format)))
 
 
-(defun csense-mark-current-line ()
+(defun csense-completion-mark-current-line ()
+  "Highlight current line in the completion list."
   (let ((orig-frame (selected-frame)))
     (unwind-protect
         (progn          
@@ -318,41 +326,46 @@ must be a plist with the follwing values:")
       (select-frame orig-frame))))
 
 
-(defun csense-next-line ()
+(defun csense-completion-next-line ()
+  "Move to next item in the completion list."
   (interactive)
-  (csense-move-selection (lambda () (forward-line 1))))
+  (csense-completion-move-selection (lambda () (forward-line 1))))
 
-(put 'csense-next-line 'csense-allowed-during-completion t)
+(put 'csense-completion-next-line 'csense-allowed-during-completion t)
 
 
-(defun csense-previous-line ()
+(defun csense-completion-previous-line ()
+  "Move to previous item in the completion list."
   (interactive)
-  (csense-move-selection (lambda () (forward-line -1))))
+  (csense-completion-move-selection (lambda () (forward-line -1))))
 
-(put 'csense-previous-line 'csense-allowed-during-completion t)
+(put 'csense-completion-previous-line 'csense-allowed-during-completion t)
 
 
-(defun csense-next-page ()
+(defun csense-completion-next-page ()
+  "Move to next page in the completion list."  
   (interactive)
-  (csense-move-selection (lambda ()
+  (csense-completion-move-selection (lambda ()
                                (condition-case nil
                                    (scroll-up)
                                  (end-of-buffer (goto-char (point-max)))))))
 
-(put 'csense-next-page 'csense-allowed-during-completion t)
+(put 'csense-completion-next-page 'csense-allowed-during-completion t)
 
 
-(defun csense-previous-page ()
+(defun csense-completion-previous-page ()
+  "Move to previous page in the completion list."  
   (interactive)
-  (csense-move-selection (lambda ()
+  (csense-completion-move-selection (lambda ()
                                (condition-case nil
                                    (scroll-down)
                                  (beginning-of-buffer (goto-char (point-min)))))))
 
-(put 'csense-previous-page 'csense-allowed-during-completion t)
+(put 'csense-completion-previous-page 'csense-allowed-during-completion t)
 
 
-(defun csense-move-selection (func)
+(defun csense-completion-move-selection (func)
+  "Move current selection in the completion list according to FUNC."  
   (interactive)
 
   (tooltip-hide)
@@ -364,7 +377,7 @@ must be a plist with the follwing values:")
           (funcall func)
           (if (eobp)
               (forward-line -1))
-          (csense-mark-current-line))
+          (csense-completion-mark-current-line))
       (select-frame orig-frame)))
   
   (with-current-buffer csense-completions-buffer    
@@ -382,10 +395,11 @@ must be a plist with the follwing values:")
                       (end-of-line)
                       (csense-show-tooltip-at-pos (or (plist-get candidate 'doc)
                                                       "No documentation.")))))
-                (select-frame orig-frame))))))))
+                (select-frame orig-frame)))))))
 
 
 (defun csense-completion-insert-selection ()
+  "Insert selected item at point into the buffer."
   (interactive)
   (let ((candidate (with-current-buffer csense-completions-buffer
                      (get-text-property (line-beginning-position)
@@ -396,6 +410,7 @@ must be a plist with the follwing values:")
 
 
 (defun csense-completion-cancel ()
+  "Cancel completion in progress."
   ;; post command hook will take care of it
   (interactive))
 

@@ -32,10 +32,6 @@ For release
 
 - auto help
 
-- indicate type of item in tooltip
-
-- fix tooltip for completions
-
 - no dup elems in completions
 
 - constructors in completions
