@@ -61,7 +61,7 @@ namespace netsense
 
 				foreach (Type t in asm.GetTypes())
 				{
-					//if (t.FullName != "System.Console")
+					//if (t.FullName != "System.Exception")
 					//	continue;
 					
 					Console.WriteLine("(name \"" +
@@ -90,7 +90,8 @@ namespace netsense
 						{
 							case MemberTypes.Method:
 								MethodInfo method = ((MethodInfo)member);
-								if (method.IsPrivate || method.IsAssembly)
+								if (method.IsPrivate || method.IsAssembly ||
+								    method.IsSpecialName)
 									continue;
 								type = method.ReturnType.FullName;
 								
