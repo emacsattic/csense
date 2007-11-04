@@ -4,8 +4,6 @@ Things to do
 For release
 -----------
 
-- function template (better word, signature?)
-
 - handling scopes without blocks (foreach, for, etc)
 
 - arrays
@@ -37,6 +35,8 @@ For release
 - properties with signatures, eg: P:System.String.Chars(System.Int32)
 
 - check if everything is having a documentation, except generic stuff
+
+- show help only fur functions with matching parameters
 
 
 Someday 
