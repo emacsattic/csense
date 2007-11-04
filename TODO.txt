@@ -61,5 +61,14 @@ Someday
 
 - function doc for generic methods (e.g. List.Add)
 
-- tooltip is hidden immediately if mouse cursor is in they way, though
+  M:System.Collections.Generic.List`1.Add(`0)
+
+  what is `0? probably refelction should be used to handle generic
+  stuff properly
+
+- tooltip is hidden immediately if mouse cursor is in the way, though
   the cursor is moved away first. why is that?
+
+- it seems inherited overloaded methods do not usually have
+  documentation even if the assembly is documented. probably the
+  documentation of the original definition should be used
