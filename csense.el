@@ -36,6 +36,7 @@
   "Maximum length of lines in tooltips.")
 
 
+;; this should be a keymap, but I'm lazy
 (defvar csense-bindings
   `((,(kbd "<f1>") . csense-show-help)
     (,(kbd "C-<f1>") . csense-go-to-definition)
@@ -43,7 +44,16 @@
   "Keybindings for commond Code Sense tasks.")
 
 
-;; this should be a keymap, but I'm lazy
+(defvar csense-completion-bindings
+  `((,(kbd "<down>") . csense-completion-next-line)
+    (,(kbd "<up>") . csense-completion-previous-line)
+    (,(kbd "<next>") . csense-completion-next-page)
+    (,(kbd "<prior>") . csense-completion-previous-page)
+    (,(kbd "<ESC>") . csense-completion-cancel)
+    (,(kbd "<RET>") . csense-completion-insert-selection))
+  "Keybindings for code completion.")
+
+
 (defvar csense-multi-tooltip-bindings
   `((,(kbd "<down>") . csense-multi-tooltip-next)
     (,(kbd "<up>") . csense-multi-tooltip-previous))
@@ -217,12 +227,7 @@ must be a plist with the follwing values:")
     (add-hook 'post-command-hook 'csense-completion-post-command))
 
     (setq csense-saved-keys nil)
-    (dolist (binding `((,(kbd "<down>") . csense-completion-next-line)
-                       (,(kbd "<up>") . csense-completion-previous-line)
-                       (,(kbd "<next>") . csense-completion-next-page)
-                       (,(kbd "<prior>") . csense-completion-previous-page)
-                       (,(kbd "<ESC>") . csense-completion-cancel)
-                       (,(kbd "<RET>") . csense-completion-insert-selection)))
+    (dolist (binding csense-completion-bindings)
       (let ((key (car binding))
             (command (cdr binding)))
         (push (cons key (lookup-key (current-local-map) key))
