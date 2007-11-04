@@ -203,7 +203,9 @@ must be a plist with the follwing values:")
                                      (concat (propertize
                                               (concat " + " 
                                                       (int-to-string count)
-                                                      " variants ")
+                                                      " variant"
+                                                      (if (> count 1) "s")
+                                                      " ")
                                               'face
                                               'csense-multiple-tooltip-indicator-face)
                                              "\n" (plist-get candidate 'doc)))
