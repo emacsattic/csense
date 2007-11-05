@@ -251,7 +251,10 @@ the function."
                    (eval `(rx  ,@csense-cs-typed-symbol-regexp
                                (* space) (or "=" ";")))
                    pos t)
-             (push (csense-cs-get-typed-symbol-regexp-result) result)))
+             (let ((var (csense-cs-get-typed-symbol-regexp-result)))
+               ;; avoid matching return statements
+               (unless (equal (plist-get var 'type) "return")
+                 (push var result)))))
              
            (setq pos (point))
            (> (point) funbegin)))
