@@ -98,44 +98,46 @@ namespace netsense
 								break;
 								
 							case MemberTypes.Method:
-								MethodInfo method = ((MethodInfo)member);
-								if (skipMethod(method) || method.IsSpecialName)
-									continue;
-								type = method.ReturnType.FullName;
-								
-								string signature = "";
-								extra = "\n\t\tparams (\n";
-								
-								foreach (ParameterInfo param in method.GetParameters())
 								{
-									string comma = signature == "" ? "" : ",";
-									signature += comma + param.ParameterType;
-
-									extra += "\t\t\t(name \"" + param.Name +
-										"\" type \"" + param.ParameterType + "\")\n";
+									MethodInfo method = ((MethodInfo)member);
+									if (skipMethod(method) || method.IsSpecialName)
+										continue;
+									type = method.ReturnType.FullName;
+									
+									string signature = getSignature(method.GetParameters());
+									extra = "\n\t\tparams (\n";
+									
+									foreach (ParameterInfo param in method.GetParameters())
+										extra += "\t\t\t(name \"" + param.Name +
+											"\" type \"" + param.ParameterType + "\")\n";
+									
+									extra += "\t\t\t)\n\t\t";
+									
+									signature = "M:" + t.FullName + "." + member.Name +
+										(signature == "" ? "" : "(" + signature + ")");
+									docs.TryGetValue(signature, out doc);
 								}
-								
-								extra += "\t\t\t)\n\t\t";
-								
-								signature = "M:" + t.FullName + "." + member.Name +
-									(signature == "" ? "" : "(" + signature + ")");
-								docs.TryGetValue(signature, out doc);
-								
 								break;
 								
 							case MemberTypes.Property:
-								PropertyInfo property = (PropertyInfo)member;
-								
-								// process the property only if either the get or 
-								// the set method is accessible from the outside
-								if (!((property.GetGetMethod() != null &&
-								       !skipMethod(property.GetGetMethod())) ||
-								      (property.GetSetMethod() != null &&
-								       !skipMethod(property.GetSetMethod()))))
-									continue;
-								
-								type = property.PropertyType.FullName;
-								docs.TryGetValue("P:" + t.FullName + "." + member.Name, out doc);
+								{
+									PropertyInfo property = (PropertyInfo)member;
+									
+									// process the property only if either the get or
+									// the set method is accessible from the outside
+									if (!((property.GetGetMethod() != null &&
+									       !skipMethod(property.GetGetMethod())) ||
+									      (property.GetSetMethod() != null &&
+									       !skipMethod(property.GetSetMethod()))))
+										continue;
+
+									string signature = getSignature(property.GetIndexParameters());
+
+									type = property.PropertyType.FullName;
+									docs.TryGetValue("P:" + t.FullName + "." + member.Name +
+									                 (signature == "" ? "" : "(" + signature + ")"),
+									                 out doc);
+								}
 								break;
 								
 							case MemberTypes.Field:
@@ -185,6 +187,16 @@ namespace netsense
 		static string qoute(string text)
 		{
 			return text.Replace(@"\", @"\\").Replace("\"", "\\\"");
+		}
+
+		static string getSignature(ParameterInfo[] parameters)
+		{
+			string signature = "";
+			
+			foreach (ParameterInfo param in parameters)
+				signature += (signature == "" ? "" : ",") + param.ParameterType;
+			
+			return signature;
 		}
 	}
 }

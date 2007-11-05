@@ -31,6 +31,7 @@ For release
 - constructors in completions
 
 - properties with signatures, eg: P:System.String.Chars(System.Int32)
+  should indicate the signature in the documentation too
 
 - check if everything is having a documentation, except generic stuff
 
