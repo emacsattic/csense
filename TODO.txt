@@ -16,8 +16,6 @@ For release
 
 - document how the backend works
 
-- check all forward/backward-sexps for error checking
-
 - url formatting should bemoved to csense-cs
 
 - bold current params
@@ -37,6 +35,9 @@ For release
 - check if everything is having a documentation, except generic stuff
 
 - show help only fur functions with matching parameters
+
+- what should happen if a a standalone symbol is completed? offer
+  local variables?
 
 
 Someday 
@@ -76,3 +77,8 @@ Someday
 - it seems inherited overloaded methods do not usually have
   documentation even if the assembly is documented. probably the
   documentation of the original definition should be used
+
+- check all forward/backward-sexps for error checking
+
+  or maybe they should be left as is, so that the user is notified of
+  syntax errors?
