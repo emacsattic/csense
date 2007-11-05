@@ -12,6 +12,8 @@ For release
 
 - handle inherited members 
 
+- fun overload by param num
+
 - caching of assemblies, source class lookups
 
 - document how the backend works
@@ -22,8 +24,6 @@ For release
 
 - help for constructors
 
-- overloads from source too (implement inheritance first?)
-
 - parameter documentation
 
 - auto help
@@ -32,10 +32,16 @@ For release
 
 - check if everything is having a documentation, except generic stuff
 
+  it seems inherited overloaded methods do not usually have
+  documentation even if the assembly is documented. probably the
+  documentation of the original definition should be used
+
 - show help only fur functions with matching parameters
 
 - what should happen if a a standalone symbol is completed? offer
-  local variables?
+  local variables? (limit: 50)
+
+- exact completion
 
 
 Someday 
@@ -43,22 +49,19 @@ Someday
 
 - casting
 
-- overloaded functions
+- overloaded functions differing by param type
 
 - handling base.something
 
-- construtor initializers : base()...
-
-- creating objects
+- skip construtor initializers : base()... , so that arglist of
+  constructors can be parsed properly
 
 - using explicit namespaces as prefix (e.g. System.Console after
   "using System;")
 
 - skip stuff in comments and strings
 
-- completion for other places too (e.g. after = new ...)
-
-- default values
+- method parameters with default values
 
 - static functions
 
@@ -71,10 +74,6 @@ Someday
 
 - tooltip is hidden immediately if mouse cursor is in the way, though
   the cursor is moved away first. why is that?
-
-- it seems inherited overloaded methods do not usually have
-  documentation even if the assembly is documented. probably the
-  documentation of the original definition should be used
 
 - check all forward/backward-sexps for error checking
 
