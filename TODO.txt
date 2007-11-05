@@ -12,19 +12,24 @@ For release
 
 - fun overload by param num
 
-- caching of assemblies, source class lookups
-
-- document how the backend works
-
 - bold current params
 
 - help for constructors
 
 - parameter documentation
 
+- constructors in completions
+
+- what should happen if a a standalone symbol is completed? offer
+  local variables? (limit: 50)
+
+- exact completion
+
+- static functions
+
 - auto help
 
-- constructors in completions
+- caching of assemblies, source class lookups
 
 - check if everything is having a documentation, except generic stuff
 
@@ -32,34 +37,30 @@ For release
   documentation even if the assembly is documented. probably the
   documentation of the original definition should be used
 
-- show help only fur functions with matching parameters
+- document how the backend works
 
-- what should happen if a a standalone symbol is completed? offer
-  local variables? (limit: 50)
-
-- exact completion
 
 
 Someday 
 -------
 
-- casting
+- handle namespace of classes retrieved from source
 
-- overloaded functions differing by param type
+- handle casting
+
+- overloaded functions differing in param type
+
+- overloading methods with default parameter values
 
 - handling base.something
 
-- skip construtor initializers : base()... , so that arglist of
-  constructors can be parsed properly
+- skip construtor initializers when parsing function argument
+   ...) : base()... 
 
-- using explicit namespaces as prefix (e.g. System.Console after
-  "using System;")
+- using explicit full or partial namespaces as prefix
+  (e.g. System.Console after "using System;")
 
 - skip stuff in comments and strings
-
-- method parameters with default values
-
-- static functions
 
 - function doc for generic methods (e.g. List.Add)
 
@@ -68,10 +69,11 @@ Someday
   what is `0? probably refelction should be used to handle generic
   stuff properly
 
-- tooltip is hidden immediately if mouse cursor is in the way, though
-  the cursor is moved away first. why is that?
-
 - check all forward/backward-sexps for error checking
 
   or maybe they should be left as is, so that the user is notified of
   syntax errors?
+
+- tooltip is hidden immediately if mouse cursor is in the way, though
+  the cursor is moved away first. why is that?
+
