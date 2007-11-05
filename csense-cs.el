@@ -589,25 +589,28 @@ CALLBACK is called with one argument which is the symbol `parent'
 or `sibling' indicating the type of scope found,
 
 The traversing of scopes continues if CALLBACK returns non-nil."
-  (save-excursion
-    (while (let ((open (save-excursion
-                         (re-search-backward "{" nil t)))
-                 (close (save-excursion
-                          (re-search-backward "}" nil t))))
-             (if open
-                 (if (and close 
-                          (> close open))
-                     (progn 
-                       (goto-char (1+ close))
-                       (backward-sexp)
-                       (funcall callback 'sibling))
+  (condition-case nil
+      (save-excursion
+        (while (let ((open (save-excursion
+                             (re-search-backward "{" nil t)))
+                     (close (save-excursion
+                              (re-search-backward "}" nil t))))
+                 (if open
+                     (if (and close 
+                              (> close open))
+                         (progn 
+                           (goto-char (1+ close))
+                           (backward-sexp)
+                           (funcall callback 'sibling))
 
-                   (goto-char open)
-                   (funcall callback 'parent))
+                       (goto-char open)
+                       (funcall callback 'parent))
 
-               ;; no more parens
-               ;; terminate the search
-               nil)))))
+                   ;; no more parens
+                   ;; terminate the search
+                   nil))))
+
+    (scan-error nil)))
 
 
 (defun csense-cs-get-typed-symbol-regexp-result ()
