@@ -260,12 +260,16 @@ the function."
            (> (point) funbegin)))
 
       ;; function arguments
-      (goto-char funbegin)
-      (backward-sexp)
-      (let ((regexp (eval `(rx ,@csense-cs-typed-symbol-regexp
-                               (or "," ")")))))
-        (while (re-search-forward regexp funbegin t)
-          (push (csense-cs-get-typed-symbol-regexp-result) result))))
+      (condition-case nil
+          (progn
+            (goto-char funbegin)
+            (backward-sexp)
+            (let ((regexp (eval `(rx ,@csense-cs-typed-symbol-regexp
+                                     (or "," ")")))))
+              (while (re-search-forward regexp funbegin t)
+                (push (csense-cs-get-typed-symbol-regexp-result) result))))
+
+        (scan-error nil)))
 
     result))
 
