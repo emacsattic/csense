@@ -8,17 +8,15 @@ For release
 
 - arrays
 
-- honor protection levels 
-
 - handle inherited members 
+
+- honor protection levels 
 
 - fun overload by param num
 
 - caching of assemblies, source class lookups
 
 - document how the backend works
-
-- url formatting should bemoved to csense-cs
 
 - bold current params
 
