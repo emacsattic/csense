@@ -6,8 +6,6 @@ For release
 
 - handling scopes without blocks (foreach, for, etc)
 
-- arrays when [].
-
 - handle inherited members 
 
 - honor protection levels 

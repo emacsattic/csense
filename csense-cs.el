@@ -389,12 +389,18 @@ to be returned."
 
 The return value is a list of plists."
   (save-excursion
-    (let ((symbol (buffer-substring-no-properties
-                   (progn (skip-syntax-backward "w_")
-                          (point))
-                   (save-excursion
-                     (skip-syntax-forward "w_")
-                     (point)))))
+    (let (array symbol)
+      (skip-syntax-backward "w_")
+      (when (eq (char-before) ?\])
+        (setq array t)
+        (backward-sexp))
+
+      (setq symbol (buffer-substring-no-properties
+                    (progn (skip-syntax-backward "w_")
+                           (point))
+                    (save-excursion
+                      (skip-syntax-forward "w_")
+                      (point))))
 
       (assert (not (equal symbol "")) nil
                    "Assertion failure: Symbol shouldn't be empty here")
@@ -428,8 +434,15 @@ The return value is a list of plists."
 
           ;; try it as a local symbol
           (some (lambda (symbol-info)
-                  (if (equal (plist-get symbol-info 'name) symbol)
-                      symbol-info))
+                  (if (and (equal (plist-get symbol-info 'name) symbol)
+                           (or (not array)
+                               (plist-get symbol-info 'array-type)))
+                      (if array
+                          ;; in case of an array reference return the
+                          ;; array type, instead of System.Array
+                          (plist-put symbol-info
+                                     'type (plist-get symbol-info 'array-type))
+                        symbol-info)))
                 (csense-cs-get-local-symbol-information-at-point))
 
           ;; let's say it's a class
@@ -614,18 +627,20 @@ The traversing of scopes continues if CALLBACK returns non-nil."
 
 (defun csense-cs-get-typed-symbol-regexp-result ()
   "Return the result of matching a `csense-cs-typed-symbol-regexp' as a plist."
-  (list 'name (csense-cs-get-match-result 
-               (list csense-cs-type-regexp
-                     csense-cs-symbol-regexp))
-        'file (buffer-file-name)
-        'pos (match-beginning (csense-cs-get-regexp-group-num 
-                               (list csense-cs-type-regexp
-                                     csense-cs-symbol-regexp)))
-        'type (if (equal (match-string-no-properties
-                          csense-cs-type-regexp-extra-group)
-                         "[]")
-                  "System.Array"
-                (match-string-no-properties csense-cs-type-regexp-type-group))))
+  (append 
+   (list 'name (csense-cs-get-match-result 
+                (list csense-cs-type-regexp
+                      csense-cs-symbol-regexp))
+         'file (buffer-file-name)
+         'pos (match-beginning (csense-cs-get-regexp-group-num 
+                                (list csense-cs-type-regexp
+                                      csense-cs-symbol-regexp))))
+   (let ((type (match-string-no-properties csense-cs-type-regexp-type-group))
+         (extra (match-string-no-properties csense-cs-type-regexp-extra-group)))
+     (if (equal extra "[]")         
+         (list 'type "System.Array"
+               'array-type type)
+       (list 'type type)))))
 
 
 (defun csense-cs-get-match-result (regexps)
