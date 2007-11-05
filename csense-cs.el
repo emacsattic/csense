@@ -213,27 +213,35 @@ the function."
        (lambda (type)
          (save-excursion
            (if (eq type 'sibling)
+               ;; since `csense-cs-up-scopes' already used
+               ;; `backward-sexp' before we got here, this shouldn't
+               ;; fail
                (forward-sexp)
 
              ;; if it's a parent scope and we're not at the beginning
              ;; of the function yet then check if it's a control
              ;; structure which binds some variable (there can be more
              ;; than one, one after the other)
-             (save-excursion               
-               (while (and 
-                       (progn
-                         (with-syntax-table 
-                             csense-cs-newline-whitespace-syntax-table
-                           (skip-syntax-backward " "))
-                         (eq (char-before) ?\)))
-                       (progn
-                         (backward-sexp)
-                         (looking-at (eval `(rx  "(" (* space) 
-                                                 ,@csense-cs-typed-symbol-regexp))))
-                       (progn
-                         (push (csense-cs-get-typed-symbol-regexp-result) result)
-                         (backward-word)
-                         t)))))
+             (save-excursion
+               (condition-case nil
+                   (while (and 
+                           (progn
+                             (with-syntax-table 
+                                 csense-cs-newline-whitespace-syntax-table
+                               (skip-syntax-backward " "))
+                             (eq (char-before) ?\)))
+                           (progn
+                             (backward-sexp)
+                             (looking-at 
+                              (eval `(rx  "(" (* space) 
+                                          ,@csense-cs-typed-symbol-regexp))))
+                           (progn
+                             (push (csense-cs-get-typed-symbol-regexp-result)
+                                   result)
+                             (backward-word)
+                             t)))
+
+                 (scan-error nil))))
 
            (while (re-search-forward
                    (eval `(rx  ,@csense-cs-typed-symbol-regexp
