@@ -392,13 +392,6 @@ The return value is a list of plists."
 
       (if (csense-cs-backward-to-container)
           (let ((parent-info (csense-cs-get-information-for-symbol-at-point)))
-            ;; in case of overloaded methods their return type must be
-            ;; the same
-            (if (member 'params (car parent-info))
-                (let ((type (plist-get (car parent-info) 'type)))
-                  (dolist (method-info (cdr parent-info))
-                    (assert (equal type (plist-get method-info 'type))))))
-
             ;; we're interested only in the return type, so it's
             ;; enough to work with the first result
             (setq parent-info (car parent-info))
