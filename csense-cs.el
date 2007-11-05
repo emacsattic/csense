@@ -87,11 +87,21 @@ directory then it will be used as well.")
     (group 
      (syntax word)
      (* (or (syntax word)
-            (syntax symbol)))
-     symbol-end
+            (syntax symbol))))
+    symbol-end
+    (group
      (?  (or (and "<" (+ (not (any ">"))) ">")
-             "[]"))))
+             (and "[" "]")))))
   "Regular expression for matching a type.")
+
+(defconst csense-cs-type-regexp-type-group 1
+  "Index of the grouping within the regexp which holds the
+  type.")
+
+(defconst csense-cs-type-regexp-extra-group 2
+  "Index of the grouping within the regexp which holds extra
+  information for the type. For example, if it's a generic or an
+  array.")
 
 
 (defconst csense-cs-typed-symbol-regexp
@@ -315,18 +325,17 @@ CLASS is the name of the class."
                              ;; closing paren followed by a
                              ;; an opening brace
                              (save-match-data
-                             (save-excursion
-                               (goto-char (1- (match-end 0)))
-                               (forward-sexp)
-                               (looking-at (rx (* (or space ?\n)) ?{)))))
-                        (let ((symbol (csense-cs-get-match-result
-                                               (list csense-cs-type-regexp
-                                                     csense-cs-symbol-regexp))))
+                               (save-excursion
+                                 (goto-char (1- (match-end 0)))
+                                 (forward-sexp)
+                                 (looking-at (rx (* (or space ?\n)) ?{)))))
+                        (let* ((symbol-info
+                                 (csense-cs-get-typed-symbol-regexp-result))
+                               (name (plist-get symbol-info 'name)))
                           ;; weed out constructors and Main function
-                          (unless (or (equal symbol class)
-                                      (equal symbol "Main"))
-                            (push (csense-cs-get-typed-symbol-regexp-result)
-                                  members)))))
+                          (unless (or (equal name class)
+                                      (equal name "Main"))
+                            (push symbol-info members)))))
                   members))
               sections))))
 
@@ -455,9 +464,6 @@ container, and return t."
 
 (defun csense-get-class-information (class)
   "Look up and return information about CLASS. See Assumptions."
-  ;; strip type from generics
-  (setq class (replace-regexp-in-string "<.*>" "" class))
-
   (or 
    ;; try to search for it in the source files
    (some (lambda (file)
@@ -615,8 +621,11 @@ The traversing of scopes continues if CALLBACK returns non-nil."
         'pos (match-beginning (csense-cs-get-regexp-group-num 
                                (list csense-cs-type-regexp
                                      csense-cs-symbol-regexp)))
-        'type (csense-cs-get-match-result 
-               (list csense-cs-type-regexp))))
+        'type (if (equal (match-string-no-properties
+                          csense-cs-type-regexp-extra-group)
+                         "[]")
+                  "System.Array"
+                (match-string-no-properties csense-cs-type-regexp-type-group))))
 
 
 (defun csense-cs-get-match-result (regexps)

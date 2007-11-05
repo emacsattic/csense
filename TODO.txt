@@ -6,7 +6,7 @@ For release
 
 - handling scopes without blocks (foreach, for, etc)
 
-- arrays
+- arrays when [].
 
 - handle inherited members 
 
