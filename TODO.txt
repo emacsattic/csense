@@ -10,7 +10,7 @@ For release
 
 - honor protection levels 
 
-- fun overload by param num
+- fun overload by param num, handle out/ref parameters
 
 - bold current params
 
@@ -39,10 +39,13 @@ For release
 
 - document how the backend works
 
+- document how the keys work
 
 
 Someday 
 -------
+
+- handle abstract functions
 
 - handle namespace of classes retrieved from source
 

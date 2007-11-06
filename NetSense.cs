@@ -78,6 +78,7 @@ namespace netsense
 					foreach (MemberInfo member in t.GetMembers(BindingFlags.Public |
 					                                           BindingFlags.Static |
 					                                           BindingFlags.NonPublic |
+					                                           BindingFlags.DeclaredOnly |
 					                                           BindingFlags.Instance))
 					{
 						string type = null;
@@ -132,13 +133,14 @@ namespace netsense
 										continue;
 
 									string signature = getSignature(property.GetIndexParameters());
-									extra = "\n\t\tparams (\n";
+									extra = "";
 									
 									foreach (ParameterInfo param in property.GetIndexParameters())
 										extra += "\t\t\t(name \"" + param.Name +
 											"\" type \"" + param.ParameterType + "\")\n";
 									
-									extra += "\t\t\t)\n\t\t";
+									if (extra != "")
+										extra = "\n\t\tparams (\n" + extra + "\t\t\t)\n\t\t";
 
 									type = property.PropertyType.FullName;
 									docs.TryGetValue("P:" + t.FullName + "." + member.Name +
