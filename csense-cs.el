@@ -265,6 +265,16 @@ the function."
            (setq pos (point))
            (> (point) funbegin)))
 
+      ;; control structure without curlies
+      (save-excursion
+        (let ((pos (point)))
+          (when (and (re-search-backward (rx (or ";" "{")) funbegin t)
+                     (not (looking-at "{")))
+            (forward-sexp)
+            (if (looking-at (eval `(rx  (* space) "(" (* space)
+                                        ,@csense-cs-typed-symbol-regexp)))
+                (push (csense-cs-get-typed-symbol-regexp-result) result)))))
+
       ;; function arguments
       (condition-case nil
           (progn
