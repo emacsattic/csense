@@ -4,8 +4,6 @@ Things to do
 For release
 -----------
 
-- handling scopes without blocks (foreach, for, etc)
-
 - handle inherited members 
 
 - honor protection levels 
@@ -48,6 +46,14 @@ Someday
 - handle abstract functions
 
 - handle namespace of classes retrieved from source
+
+- handling scopes without blocks when scoping an other control structure
+
+  e.g.       foreach (Items item ... )
+                if (stuff)
+                {
+                     ;; item is not detected here
+                }
 
 - handle casting
 
