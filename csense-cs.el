@@ -212,7 +212,15 @@ directory then it will be used as well.")
         (append (csense-cs-get-local-variables func-info)
                 (save-excursion
                   (goto-char (plist-get func-info 'class-begin))
-                  (csense-cs-get-members (plist-get func-info 'class-name)))))))
+                  (append (csense-cs-get-members
+                           (plist-get func-info 'class-name))
+                          ;; this should be done via
+                          ;; `csense-get-members-for-symbol', instead
+                          ;; of duplicating the code here
+                          (if (plist-get func-info 'base)
+                              (csense-get-members-for-symbol
+                               (csense-get-class-information
+                                (plist-get func-info 'base))))))))))
 
 
 (defun csense-cs-get-local-variables (func-info)
@@ -465,15 +473,15 @@ The return value is a list of plists."
 
 (defun csense-get-members-for-symbol (symbol-info)
   "Return list of members for symbol described by SYMBOL-INFO."
-  (or 
-   ;; it's a class itself
-   (plist-get symbol-info 'members)
-
-   ;; it's a variable or a method, so look up
-   ;; class information first and then members
-   (plist-get (csense-get-class-information
-               (plist-get symbol-info 'type))
-              'members)))  
+  (let ((class-info (if (member 'members symbol-info)
+                        ;; it's a class itself
+                        symbol-info
+                      (csense-get-class-information
+                       (plist-get symbol-info 'type)))))
+    (append (plist-get class-info 'members)
+            (if (plist-get class-info 'base)
+                (csense-get-members-for-symbol
+                 (csense-get-class-information (plist-get class-info 'base)))))))
 
 
 (defun csense-cs-backward-to-container ()
@@ -555,7 +563,7 @@ container, and return t."
                                         'pos (match-beginning 1)
                                         'members (csense-cs-get-members class)))
                      (if base
-                         (setq result (plist-put result 'base-class base)))))))
+                         (setq result (plist-put result 'base base)))))))
 
              (if kill
                  (kill-buffer buffer))
@@ -610,7 +618,7 @@ The plist values:
                               (list csense-cs-symbol-regexp
                                     csense-class-base-regexp))))
                    (if base
-                       (setq result (plist-put result 'base-class base))))
+                       (setq result (plist-put result 'base base))))
 
                  ;; class found, stop search
                  nil)

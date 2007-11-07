@@ -4,8 +4,6 @@ Things to do
 For release
 -----------
 
-- handle inherited members 
-
 - honor protection levels 
 
 - fun overload by param num, handle out/ref parameters
