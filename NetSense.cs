@@ -61,13 +61,16 @@ namespace netsense
 
 				foreach (Type t in asm.GetTypes())
 				{
-					//if (t.FullName != "System.String")
+					//if (t.FullName != "System.Void")
 					//	continue;
 					
 					Console.WriteLine("(name \"" +
 					                  // remove generic tag from end of class name if any
 					                  Regex.Replace(t.FullName, "`[0-9]+", "")
 					                  + "\"");
+					
+					if (t.BaseType != null)
+						Console.WriteLine("\tbase \"" + t.BaseType.FullName + "\"");
 					
 					string doc;
 					if (docs.TryGetValue("T:" + t.FullName, out doc))

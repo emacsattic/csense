@@ -104,6 +104,13 @@ directory then it will be used as well.")
   (append csense-cs-type-regexp '((+ space)) csense-cs-symbol-regexp)
   "Regular expression for matching a type.")
 
+
+(defconst csense-class-base-regexp
+  `((zero-or-one (and ,@(append '((* space)) ":" '((* space))
+                                csense-cs-symbol-regexp))))
+  "Regular expression for the matching the base class of a class.")
+
+
 (defconst csense-cs-type-aliases
   '(("bool"	. "Boolean")
     ("byte"	. "Byte")
@@ -531,17 +538,24 @@ container, and return t."
                  (goto-char (point-min))
                  (when (re-search-forward 
                         (eval `(rx "class" (+ space)
-                                   symbol-start (group ,class) symbol-end))
+                                   symbol-start (group ,class) symbol-end
+                                   ,@csense-class-base-regexp))
                         nil t)
                    ;; position the cursor for csense-cs-get-members
                    ;; FIXME: it should be done some other way, it's clumsy
-                   (save-match-data
-                     (search-forward "{"))
-                   (backward-char)
-                   (setq result (list 'name class
-                                      'file file
-                                      'pos (match-beginning 1)
-                                      'members (csense-cs-get-members class))))))
+                   (with-syntax-table 
+                       csense-cs-newline-whitespace-syntax-table
+                     (skip-syntax-forward " "))
+
+                   (let ((base (match-string-no-properties 
+                                (1+ (csense-cs-get-regexp-group-num
+                                     csense-class-base-regexp)))))
+                     (setq result (list 'name class
+                                        'file file
+                                        'pos (match-beginning 1)
+                                        'members (csense-cs-get-members class)))
+                     (if base
+                         (setq result (plist-put result 'base-class base)))))))
 
              (if kill
                  (kill-buffer buffer))
@@ -585,12 +599,19 @@ The plist values:
                           (forward-line -1))
                       (looking-at (eval `(rx (* not-newline)
                                              "class" (+ space)
-                                             ,@csense-cs-symbol-regexp)))))
+                                             ,@csense-cs-symbol-regexp
+                                             ,@csense-class-base-regexp)))))
                (progn
                  (setq result (plist-put result 'class-begin open))
                  (setq result (plist-put result 'class-name
                                          (csense-cs-get-match-result
                                           (list csense-cs-symbol-regexp))))
+                 (let ((base (csense-cs-get-match-result
+                              (list csense-cs-symbol-regexp
+                                    csense-class-base-regexp))))
+                   (if base
+                       (setq result (plist-put result 'base-class base))))
+
                  ;; class found, stop search
                  nil)
 
