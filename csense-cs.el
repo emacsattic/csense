@@ -268,8 +268,9 @@ the function."
       ;; control structure without curlies
       (save-excursion
         (let ((pos (point)))
-          (when (and (re-search-backward (rx (or ";" "{")) funbegin t)
+          (when (and (re-search-backward (rx (or ";" "{" "}")) funbegin t)
                      (not (looking-at "{")))
+            (forward-char)
             (forward-sexp)
             (if (looking-at (eval `(rx  (* space) "(" (* space)
                                         ,@csense-cs-typed-symbol-regexp)))
