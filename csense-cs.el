@@ -580,7 +580,9 @@ The plist values:
 
            (if (and (plist-get result 'func-begin)
                     (save-excursion
-                      (forward-line -1)
+                      (beginning-of-line)
+                      (if (looking-at (rx (* space) "{"))
+                          (forward-line -1))
                       (looking-at (eval `(rx (* not-newline)
                                              "class" (+ space)
                                              ,@csense-cs-symbol-regexp)))))
