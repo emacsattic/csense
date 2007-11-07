@@ -485,37 +485,6 @@ container, and return t."
 (defun csense-get-class-information (class)
   "Look up and return information about CLASS. See Assumptions."
   (or 
-   ;; try to search for it in the source files
-   (some (lambda (file)
-           (let* ((buffer (get-file-buffer file))
-                  result kill)
-             (unless buffer
-               (setq buffer (find-file-noselect file))
-               (setq kill t))
-
-             (with-current-buffer buffer
-               (save-excursion
-                 (goto-char (point-min))
-                 (when (re-search-forward 
-                        (eval `(rx "class" (+ space)
-                                   symbol-start (group ,class) symbol-end))
-                        nil t)
-                   ;; position the cursor for csense-cs-get-members
-                   ;; FIXME: it should be done some other way, it's clumsy
-                   (save-match-data
-                     (search-forward "{"))
-                   (backward-char)
-                   (setq result (list 'name class
-                                      'file file
-                                      'pos (match-beginning 1)
-                                      'members (csense-cs-get-members class))))))
-
-             (if kill
-                 (kill-buffer buffer))
-
-             result))
-         csense-cs-source-files)
-
    (let ((class-info
           ;; maybe it's a fully qualified class name in an assembly
           (gethash class csense-cs-type-hash)))
@@ -548,6 +517,37 @@ container, and return t."
                   'members (mapcar (lambda (member)
                                      (plist-put member 'class class-info))
                                    (plist-get class-info 'members)))))
+
+   ;; try to search for it in the source files
+   (some (lambda (file)
+           (let* ((buffer (get-file-buffer file))
+                  result kill)
+             (unless buffer
+               (setq buffer (find-file-noselect file))
+               (setq kill t))
+
+             (with-current-buffer buffer
+               (save-excursion
+                 (goto-char (point-min))
+                 (when (re-search-forward 
+                        (eval `(rx "class" (+ space)
+                                   symbol-start (group ,class) symbol-end))
+                        nil t)
+                   ;; position the cursor for csense-cs-get-members
+                   ;; FIXME: it should be done some other way, it's clumsy
+                   (save-match-data
+                     (search-forward "{"))
+                   (backward-char)
+                   (setq result (list 'name class
+                                      'file file
+                                      'pos (match-beginning 1)
+                                      'members (csense-cs-get-members class))))))
+
+             (if kill
+                 (kill-buffer buffer))
+
+             result))
+         csense-cs-source-files)
 
    (error "Class '%s' not found. Are you perhaps missing an assembly?" class)))
 
