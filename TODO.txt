@@ -27,12 +27,6 @@ For release
 
 - caching of assemblies, source class lookups
 
-- check if everything is having a documentation, except generic stuff
-
-  it seems inherited overloaded methods do not usually have
-  documentation even if the assembly is documented. probably the
-  documentation of the original definition should be used
-
 - document how the backend works
 
 - document how the keys work
