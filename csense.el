@@ -23,6 +23,13 @@
 ;;
 ;; Install it by requiring one of the language-specific frontends.
 ;;
+;; F1 shows help for the symbol at point.
+;;
+;; C-F1 goes to the definition (using the etag ring, so you can use
+;; M-* to jump back)
+;;
+;; C-. completes the symbol at point
+;;
 
 ;;  Tested on Emacs 22.
 

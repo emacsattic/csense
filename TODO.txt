@@ -29,8 +29,6 @@ For release
 
 - document how the backend works
 
-- document how the keys work
-
 
 Someday 
 -------
