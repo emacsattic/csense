@@ -85,8 +85,34 @@
 (defvar csense-information-function nil
   "Function called with no arguments to get available information at point.
 
-The function should return formatted textual documentation or nil
-if there is no help available.")
+The function should return a list of plists with information
+available at point. If the returned list has more than one plists
+then the information is shown in a multi tooltip where the user
+can switch between tooltips.
+
+If there is no help available the function should return nil.
+
+The plist should have the following porperties:
+
+  - doc
+
+    Formated textual documentation which is shown in the tooltip.
+
+  - url
+
+    URL to be opened in web browser when the user wants to go to
+    the definition. Not mandatory. See property `file'.
+
+  - file
+
+    Path of the source file to be opened when the user wants to
+    jump to the definition. Not mandatory. See property `url'.
+
+  - pos
+
+    Position of the definition in the source file indicated by
+    `file'. Must be given if `file' is given.
+")
 
 (make-variable-buffer-local 'csense-information-function)
 
@@ -94,8 +120,20 @@ if there is no help available.")
 (defvar csense-completion-function nil
   "Function called with no arguments to get completions for the symbol at point.
 
-The function should return a list of completions available at point. Each completion
-must be a plist with the follwing values:")
+The function should return a list of plists with information
+about completions available at point.
+
+The plist should have the following properties:
+
+   - name
+
+     Name of the item shown in the completion window.
+
+   - doc
+
+     Documentation of the item shown in a tooltip when the item
+     is selected and the user hesitates.
+")
 
 (make-variable-buffer-local 'csense-completion-function)
 
