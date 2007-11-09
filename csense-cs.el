@@ -473,7 +473,7 @@ The return value is a list of plists."
 
 (defun csense-get-members-for-symbol (symbol-info)
   "Return list of members for symbol described by SYMBOL-INFO."
-  (let ((class-info (if (member 'members symbol-info)
+  (let ((class-info (if (plist-member symbol-info 'members)
                         ;; it's a class itself
                         symbol-info
                       (csense-get-class-information

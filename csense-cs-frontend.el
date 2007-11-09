@@ -119,7 +119,7 @@ completion data for the CSense frontend."
                           " "
                           (plist-get info 'name)
 
-                          (if (member 'params info)
+                          (if (plist-member info 'params)
                               (concat "("
                                       (mapconcat 
                                        (lambda (param)
