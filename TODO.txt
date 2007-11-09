@@ -33,6 +33,10 @@ For release
 Someday 
 -------
 
+- handle enum
+
+- overloaded function argument can be base/derived types too
+
 - handle namespace of classes retrieved from source
 
 - handling scopes without blocks when scoping an other control structure
