@@ -296,14 +296,34 @@ the function."
           (progn
             (goto-char funbegin)
             (backward-sexp)
-            (let ((regexp (eval `(rx ,@csense-cs-typed-symbol-regexp
-                                     (or "," ")")))))
-              (while (re-search-forward regexp funbegin t)
-                (push (csense-cs-get-typed-symbol-regexp-result) result))))
-
+            (setq result (nconc result 
+                                (csense-cs-get-function-arguments funbegin))))
         (scan-error nil)))
 
     result))
+
+
+(defun csense-cs-get-function-arguments (limit)
+  "Return arguments of function from definition.
+
+Cursor must be at the beginning paren of the argument list.
+LIMIT is a position limiting the search."  
+  (save-excursion
+    (let ((regexp (eval `(rx ,@csense-cs-typed-symbol-regexp
+                             (or "," ")"))))
+          result)
+      (while (re-search-forward regexp limit t)
+        (let* ((arg (csense-cs-get-typed-symbol-regexp-result))
+               (type (plist-get arg 'type))
+               (alias (some (lambda (alias)                             
+                              (if (equal type (car alias))
+                                  (concat "System." (cdr alias))))
+                            csense-cs-type-aliases)))
+          (push (if alias
+                    (plist-put arg 'type alias)
+                  arg)
+                result)))
+      result)))
 
 
 (defun csense-cs-get-members (class)
@@ -357,7 +377,10 @@ CLASS is the name of the class."
                           ;; weed out constructors and Main function
                           (unless (or (equal name class)
                                       (equal name "Main"))
-                            (push symbol-info members)))))
+                            (push (plist-put symbol-info 'params
+                                             (csense-cs-get-function-arguments
+                                              section-end))
+                                  members)))))
                   members))
               sections))))
 
@@ -431,6 +454,9 @@ The return value is a list of plists."
           (let ((parent-info (csense-cs-get-information-for-symbol-at-point)))
             ;; we're interested only in the return type, so it's
             ;; enough to work with the first result
+            ;;
+            ;; multiple values should only be returned for overloaded
+            ;; functions and their return type must be the same
             (setq parent-info (car parent-info))
             
             (or (delete-if
@@ -478,10 +504,31 @@ The return value is a list of plists."
                         symbol-info
                       (csense-get-class-information
                        (plist-get symbol-info 'type)))))
-    (append (plist-get class-info 'members)
-            (if (plist-get class-info 'base)
-                (csense-get-members-for-symbol
-                 (csense-get-class-information (plist-get class-info 'base)))))))
+    (csense-merge-inherited-members 
+     (plist-get class-info 'members)
+     (if (plist-get class-info 'base)
+         (csense-get-members-for-symbol
+          (csense-get-class-information (plist-get class-info 'base)))))))
+
+
+(defun csense-merge-inherited-members (members inherited-members)
+  "Merge MEMBERS of current class with INHERITED-MEMBERS from the
+base class."
+  (append 
+   members
+   (remove-if 
+    (lambda (inherited-member)
+      (some (lambda (member)
+              (and (equal (plist-get member 'name)
+                          (plist-get inherited-member 'name))
+                   (or (not (plist-member member 'params))
+                       (not (mismatch (plist-get member 'params)
+                                      (plist-get inherited-member 'params)
+                                      :test (lambda (x y)
+                                              (equal (plist-get x 'type)
+                                                     (plist-get y 'type))))))))
+            members))
+    inherited-members)))
 
 
 (defun csense-cs-backward-to-container ()
