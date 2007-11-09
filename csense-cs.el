@@ -244,8 +244,8 @@ the function."
 
              ;; if it's a parent scope and we're not at the beginning
              ;; of the function yet then check if it's a control
-             ;; structure which binds some variable (there can be more
-             ;; than one, one after the other)
+             ;; structure which binds a variable (there can be more
+             ;; than one structure, one after the other)
              (unless (<= (point) funbegin)
                (save-excursion
                  (condition-case nil
