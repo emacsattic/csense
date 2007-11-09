@@ -209,18 +209,19 @@ directory then it will be used as well.")
   "Return list of information about symbols locally available at point."
   (let ((func-info (csense-cs-get-function-info)))
     (if func-info
-        (append (csense-cs-get-local-variables func-info)
-                (save-excursion
-                  (goto-char (plist-get func-info 'class-begin))
-                  (append (csense-cs-get-members
-                           (plist-get func-info 'class-name))
-                          ;; this should be done via
-                          ;; `csense-get-members-for-symbol', instead
-                          ;; of duplicating the code here
-                          (if (plist-get func-info 'base)
-                              (csense-get-members-for-symbol
-                               (csense-get-class-information
-                                (plist-get func-info 'base))))))))))
+        (csense-cs-merge-local-symbols
+         (csense-cs-get-local-variables func-info)
+         (save-excursion
+           (goto-char (plist-get func-info 'class-begin))
+           (append (csense-cs-get-members
+                    (plist-get func-info 'class-name))
+                   ;; this should be done via
+                   ;; `csense-get-members-for-symbol', instead
+                   ;; of duplicating the code here
+                   (if (plist-get func-info 'base)
+                       (csense-get-members-for-symbol
+                        (csense-get-class-information
+                         (plist-get func-info 'base))))))))))
 
 
 (defun csense-cs-get-local-variables (func-info)
@@ -240,8 +241,19 @@ the function."
                ;; since `csense-cs-up-scopes' already used
                ;; `backward-sexp' before we got here, this shouldn't
                ;; fail
-               (forward-sexp)
+               (forward-sexp))
 
+           (save-excursion
+             (while (re-search-forward
+                     (eval `(rx  ,@csense-cs-typed-symbol-regexp
+                                 (* space) (or "=" ";")))
+                     pos t)
+               (let ((var (csense-cs-get-typed-symbol-regexp-result)))
+                 ;; avoid matching return statements
+                 (unless (equal (plist-get var 'type) "return")
+                   (setq result (csense-cs-merge-local-symbols result (list var)))))))
+             
+           (if (eq type 'parent)
              ;; if it's a parent scope and we're not at the beginning
              ;; of the function yet then check if it's a control
              ;; structure which binds a variable (there can be more
@@ -261,22 +273,15 @@ the function."
                                 (eval `(rx  "(" (* space) 
                                             ,@csense-cs-typed-symbol-regexp))))
                              (progn
-                               (push (csense-cs-get-typed-symbol-regexp-result)
-                                     result)
+                               (setq result 
+                                     (csense-cs-merge-local-symbols 
+                                      result 
+                                      (list (csense-cs-get-typed-symbol-regexp-result))))
                                (backward-word)
                                t)))
 
-                   (scan-error nil)))))
+                   (scan-error nil))))))
 
-           (while (re-search-forward
-                   (eval `(rx  ,@csense-cs-typed-symbol-regexp
-                               (* space) (or "=" ";")))
-                   pos t)
-             (let ((var (csense-cs-get-typed-symbol-regexp-result)))
-               ;; avoid matching return statements
-               (unless (equal (plist-get var 'type) "return")
-                 (push var result)))))
-             
            (setq pos (point))
            (> (point) funbegin)))
 
@@ -296,11 +301,25 @@ the function."
           (progn
             (goto-char funbegin)
             (backward-sexp)
-            (setq result (nconc result 
-                                (csense-cs-get-function-arguments funbegin))))
+            (setq result (csense-cs-merge-local-symbols
+                          result (csense-cs-get-function-arguments funbegin))))
         (scan-error nil)))
 
     result))
+
+
+(defun csense-cs-merge-local-symbols (symbols newsymbols)
+  "Add those NEWSYMBOLS to SYMBOLS which has a different
+name. Symbols hide other symbols with the same name in outer
+scopes."
+  (append symbols
+          (remove-if 
+           (lambda (newsymbol)
+             (some (lambda (symbol)
+                     (equal (plist-get symbol 'name)
+                            (plist-get newsymbol 'name)))
+                   symbols))
+           newsymbols)))
 
 
 (defun csense-cs-get-function-arguments (limit)
