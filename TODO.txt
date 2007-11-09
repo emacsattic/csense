@@ -6,7 +6,7 @@ For release
 
 - honor protection levels 
 
-- fun overload by param num, handle out/ref parameters
+- fun overload by invocation param num
 
 - bold current params
 
@@ -32,6 +32,8 @@ For release
 
 Someday 
 -------
+
+, handle out/ref parameters
 
 - handle enum
 

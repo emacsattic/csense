@@ -213,15 +213,16 @@ directory then it will be used as well.")
          (csense-cs-get-local-variables func-info)
          (save-excursion
            (goto-char (plist-get func-info 'class-begin))
-           (append (csense-cs-get-members
-                    (plist-get func-info 'class-name))
-                   ;; this should be done via
-                   ;; `csense-get-members-for-symbol', instead
-                   ;; of duplicating the code here
-                   (if (plist-get func-info 'base)
-                       (csense-get-members-for-symbol
-                        (csense-get-class-information
-                         (plist-get func-info 'base))))))))))
+           (csense-merge-inherited-members 
+            (csense-cs-get-members
+             (plist-get func-info 'class-name))
+            ;; this should be done via
+            ;; `csense-get-members-for-symbol', instead
+            ;; of duplicating the code here
+            (if (plist-get func-info 'base)
+                (csense-get-members-for-symbol
+                 (csense-get-class-information
+                  (plist-get func-info 'base))))))))))
 
 
 (defun csense-cs-get-local-variables (func-info)
@@ -487,33 +488,37 @@ The return value is a list of plists."
 
               (error "Don't know what '%s' is." symbol)))
 
-        ;; wrap the result in a list for consistency, even if there is
-        ;; only element. it simplifies handling the result in various
-        ;; places
-        (list 
-         (or
-          ;; handle this
-          (if (equal symbol "this")
-              (let ((function-info (csense-cs-get-function-info)))
-                (if function-info
-                    (csense-get-class-information 
-                     (plist-get function-info 'class-name)))))
+        ;; handle this
+        (if (equal symbol "this")
+            ;; wrap the result in a list for consistency with
+            ;; `csense-cs-get-local-symbol-information-at-point' (below)
+            ;; which can return multiple results
+            (list (let ((function-info (csense-cs-get-function-info)))
+                    (if function-info
+                        (csense-get-class-information 
+                         (plist-get function-info 'class-name)))))
 
-          ;; try it as a local symbol
-          (some (lambda (symbol-info)
-                  (if (and (equal (plist-get symbol-info 'name) symbol)
-                           (or (not array)
-                               (plist-get symbol-info 'array-type)))
-                      (if array
-                          ;; in case of an array reference return the
-                          ;; array type, instead of System.Array
-                          (plist-put symbol-info
-                                     'type (plist-get symbol-info 'array-type))
-                        symbol-info)))
-                (csense-cs-get-local-symbol-information-at-point))
+          (or
+           ;; try it as a local symbol
+           (remove-if-not
+            (lambda (symbol-info)
+              (if (and (equal (plist-get symbol-info 'name) symbol)
+                       (or (not array)
+                           (plist-get symbol-info 'array-type)))
+                  (if array
+                      ;; in case of an array reference return the
+                      ;; array type, instead of System.Array
+                      (plist-put symbol-info
+                                 'type (plist-get symbol-info 'array-type))
+                    symbol-info)))
+            (csense-cs-get-local-symbol-information-at-point))
 
-          ;; let's say it's a class
-          (csense-get-class-information symbol)))))))
+           ;; let's say it's a class
+           ;;
+           ;; wrap the result in a list for consistency with
+           ;; `csense-cs-get-local-symbol-information-at-point' (above)
+           ;; which can return multiple results
+           (list (csense-get-class-information symbol))))))))
 
 
 (defun csense-get-members-for-symbol (symbol-info)
