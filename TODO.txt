@@ -6,8 +6,6 @@ For release
 
 - honor protection levels 
 
-- bold current params
-
 - help for constructors
 
 - parameter documentation

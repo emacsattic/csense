@@ -225,7 +225,28 @@ directory then it will be used as well.")
                                  (= (length (plist-get function 'params))
                                     numargs))
                                infos)))))
-              infos)))))
+              infos)
+
+          ;; check if we're in a function invocation argument list
+          (let ((index 0))
+            (save-excursion
+              (condition-case nil
+                  (with-syntax-table csense-cs-newline-whitespace-syntax-table
+                    (skip-syntax-backward " ")
+                    (while (not (eq (char-before) ?\())
+                      (if (eq (char-before) ?,)
+                          (incf index))
+                      (backward-sexp)
+                      (skip-syntax-backward " "))
+
+                    ;; we got which argument the cursor is at, now
+                    ;; find out what function it is
+                    (backward-char)
+                    (skip-syntax-backward " ")
+                    (mapcar (lambda (function)
+                              (plist-put function 'current-param index))
+                            (csense-cs-get-information-at-point)))
+                (scan-error nil))))))))
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
@@ -844,9 +865,11 @@ Cursor must be before the beginning paren of the invocation."
             (skip-syntax-forward " ")
             (forward-sexp)
             (skip-syntax-forward " ")
-            (when (looking-at "[,)]")
+            (if (looking-at ";")
+                (signal 'scan-error nil)
+            (when (looking-at "[,)]")                
               (incf count)
-              (forward-char)))
+              (forward-char))))
           count)
       (scan-error nil))))
            

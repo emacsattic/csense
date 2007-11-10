@@ -42,6 +42,10 @@
   '((t (:bold t)))
   "Face for references in documentation.")
 
+(defface csense-cs-frontend-current-param-face
+  '((t (:bold t)))
+  "Face for highlighting the current parameter in a function invocation.")
+
 ;;;----------------------------------------------------------------------------
 
 (add-hook 'csharp-mode-hook 'csense-cs-frontend-setup)
@@ -99,7 +103,6 @@ completion data for the CSense frontend."
    info 
    'doc
    (csense-wrap-text
-    (csense-color-header 
      ;; if it was found in the sources then show the relevant part of
      ;; the source code
      (if (plist-get info 'file)
@@ -121,13 +124,23 @@ completion data for the CSense frontend."
 
                           (if (plist-member info 'params)
                               (concat "("
-                                      (mapconcat 
-                                       (lambda (param)
-                                         (concat (plist-get param 'type)
-                                                 " "
-                                                 (plist-get param 'name)))
-                                       (plist-get info 'params)
-                                       ", ")
+                                      (let ((index -1))
+                                        (mapconcat 
+                                         (lambda (param)
+                                           (incf index)
+                                           (let ((paramtext
+                                                  (concat (plist-get param 'type)
+                                                          " "
+                                                          (plist-get param 'name))))
+                                             (if (eq index 
+                                                     (plist-get info 'current-param))
+                                                 (propertize
+                                                  paramtext
+                                                  'face
+                                                  'csense-cs-frontend-current-param-face)
+                                               paramtext)))
+                                         (plist-get info 'params)
+                                         ", "))
                                       ")"))))
                        "\n\n"
                        (if doc
@@ -162,7 +175,7 @@ completion data for the CSense frontend."
                     "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
                     doc))
 
-         doc))))))
+         doc)))))
 
 
 (defun csense-cs-frontend-string-begins-with (str begin)
