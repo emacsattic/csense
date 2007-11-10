@@ -239,6 +239,11 @@ The plists can have have the following properties:
 
     Base class name if the item is a class.
 
+  - members
+
+    List of members if it is a class. The member is a plist
+    having the same properties as described here.
+
   - params
 
     List of plists describing parameters. Only present for
