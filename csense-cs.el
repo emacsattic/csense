@@ -222,8 +222,12 @@ directory then it will be used as well.")
                         (setq infos 
                               (remove-if-not 
                                (lambda (function)
-                                 (= (length (plist-get function 'params))
-                                    numargs))
+                                 (apply (if (< numargs 0)
+                                            '>=
+                                          '=)
+                                        (list 
+                                         (length (plist-get function 'params))
+                                         (abs numargs))))
                                infos)))))
               infos)
 
@@ -850,27 +854,38 @@ matching groups in REGEXPS."
 (defun csense-cs-get-num-of-args ()
   "Return number of arguments for a function invocation or nil if it cannot be determined.
 
+A negative return value means the invocation as at least that
+many arguments. The exact number of arguments could not be
+determined.
+
 Cursor must be before the beginning paren of the invocation."
   (save-excursion
     (condition-case nil
         (let ((end (1- (save-excursion
                          (forward-sexp)
                          (point))))
-              (count 0))
-          (skip-syntax-forward " ")
-          (assert (looking-at "("))
-          (forward-char)
-          (skip-syntax-forward " ")
-          (while (< (point) end)
-            (skip-syntax-forward " ")
-            (forward-sexp)
-            (skip-syntax-forward " ")
-            (if (looking-at ";")
-                (signal 'scan-error nil)
-            (when (looking-at "[,)]")                
-              (incf count)
-              (forward-char))))
-          count)
+              (count 1))
+          (condition-case nil
+              (progn
+                (skip-syntax-forward " ")
+                (assert (looking-at "("))
+                (forward-char)
+                (skip-syntax-forward " ")
+
+                (if (looking-at ")")
+                    0
+
+                  (while (< (point) end)
+                    (skip-syntax-forward " ")
+                    (forward-sexp)
+                    (skip-syntax-forward " ")
+                    (if (looking-at ";")
+                        (signal 'scan-error nil)
+                      (when (looking-at ",")
+                        (incf count)
+                        (forward-char))))
+                  count))
+            (scan-error (- 0 count))))
       (scan-error nil))))
            
 
