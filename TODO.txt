@@ -17,8 +17,6 @@ For release
 
 - static functions
 
-- auto help
-
 - caching source class lookups
 
 - document how the backend works
@@ -28,6 +26,8 @@ For release
 
 Someday 
 -------
+
+- auto help
 
 - handle out/ref parameters
 
