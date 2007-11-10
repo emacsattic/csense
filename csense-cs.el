@@ -67,6 +67,10 @@ directory then it will be used as well.")
 (defvar csense-cs-assembly-parser-program "netsense.exe"
   "Path to program used to load information from assemblies.")
 
+
+(defvar csense-cs-cache-directory "~/.csense-cs"
+  "Path to directory where cache files are stored.")
+
 ;;;----------------------------------------------------------------------------
 
 (defconst csense-cs-symbol-regexp
@@ -151,32 +155,50 @@ directory then it will be used as well.")
 
 
 (defun csense-cs-initialize ()
-  "Initialize CSharp support."  
+  "Initialize CSharp support."
   (unless (> (hash-table-count csense-cs-type-hash) 0)
     (dolist (assembly csense-cs-assemblies)    
-      (message "Loading information from assembly: %s" assembly)
-      (with-temp-buffer
-        (unless (= (call-process csense-cs-assembly-parser-program
-                                 nil t nil assembly)
-                   0)
-          (error "Cannot load information from assembly: %s" assembly))
+      (let ((cache-file 
+             (concat (file-name-as-directory csense-cs-cache-directory)
+                     (file-name-nondirectory assembly))))
+        (if (and (file-readable-p cache-file)
+                 (< (float-time (sixth (file-attributes assembly)))
+                    (float-time (sixth (file-attributes cache-file)))))
+            (progn
+              (message "Loading cached information for assembly: %s" assembly)
+              (with-temp-buffer
+                (insert-file-contents cache-file)
+                (csense-cs-read-assembly-info)))
 
-        (goto-char (point-min))
+          (message "Loading information from assembly: %s" assembly)
 
-        (dolist (type 
-                 (condition-case nil
-                     (read (current-buffer))
-                   (error (message (concat "Couldn't parse the following "
-                                           "line (position: %s): %s ")
-                                   (- (point) (line-beginning-position))
-                                   (buffer-substring (line-beginning-position)
-                                                     (line-end-position)))
-                          (error (concat "Couldn't read information from "
-                                         "assembly. See the *Messages* buffer "
-                                         "for details.")))))
-          (puthash (plist-get type 'name) type csense-cs-type-hash))))
+          (unless (file-readable-p csense-cs-cache-directory)
+            (make-directory csense-cs-cache-directory t))
 
-    (message "Done.")))
+          (with-temp-file cache-file
+            (unless (= (call-process csense-cs-assembly-parser-program
+                                     nil t nil assembly)
+                       0)
+              (error "Cannot load information from assembly: %s" assembly))
+            (csense-cs-read-assembly-info)))
+
+        (message "Done.")))))
+
+
+(defun csense-cs-read-assembly-info ()
+  "Read assembly information from the current buffer."
+  (goto-char (point-min))
+  (condition-case nil
+      (dolist (type (read (current-buffer)))
+        (puthash (plist-get type 'name) type csense-cs-type-hash))
+    (error (message (concat "Couldn't parse the following "
+                            "line (position: %s): %s ")
+                    (- (point) (line-beginning-position))
+                    (buffer-substring (line-beginning-position)
+                                      (line-end-position)))
+           (error (concat "Couldn't read information from "
+                          "assembly. See the *Messages* buffer "
+                          "for details.")))))
 
 
 (defun csense-cs-get-information-at-point ()

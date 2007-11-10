@@ -23,7 +23,7 @@ For release
 
 - auto help
 
-- caching of assemblies, source class lookups
+- caching source class lookups
 
 - document how the backend works
 
@@ -67,7 +67,7 @@ Someday
 
   M:System.Collections.Generic.List`1.Add(`0)
 
-  what is `0? probably refelction should be used to handle generic
+  what is `0? probably reflection should be used to handle generic
   stuff properly
 
 - check all forward/backward-sexps for error checking
