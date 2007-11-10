@@ -29,8 +29,6 @@ For release
 
 - skip stuff in comments and strings
 
-- handling base.something
-
 
 Someday 
 -------

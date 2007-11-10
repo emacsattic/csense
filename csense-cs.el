@@ -510,7 +510,7 @@ The return value is a list of plists."
 
               (error "Don't know what '%s' is." symbol)))
 
-        ;; handle this
+        ;; handle `this'
         (if (equal symbol "this")
             ;; wrap the result in a list for consistency with
             ;; `csense-cs-get-local-symbol-information-at-point' (below)
@@ -520,27 +520,40 @@ The return value is a list of plists."
                         (csense-get-class-information 
                          (plist-get function-info 'class-name)))))
 
-          (or
-           ;; try it as a local symbol
-           (remove-if-not
-            (lambda (symbol-info)
-              (if (and (equal (plist-get symbol-info 'name) symbol)
-                       (or (not array)
-                           (plist-get symbol-info 'array-type)))
-                  (if array
-                      ;; in case of an array reference return the
-                      ;; array type, instead of System.Array
-                      (plist-put symbol-info
-                                 'type (plist-get symbol-info 'array-type))
-                    symbol-info)))
-            (csense-cs-get-local-symbol-information-at-point))
+          ;; handle `base'
+          (if (equal symbol "base")
+              ;; wrap the result in a list for consistency with
+              ;; `csense-cs-get-local-symbol-information-at-point' (below)
+              ;; which can return multiple results
+              (list (let ((function-info (csense-cs-get-function-info)))
+                      (if function-info
+                          (if (plist-get function-info 'base)
+                              (csense-get-class-information 
+                               (plist-get function-info 'base))
+                            (error (concat "The base keyword is used, but "
+                                           "this class has no base class."))))))
 
-           ;; let's say it's a class
-           ;;
-           ;; wrap the result in a list for consistency with
-           ;; `csense-cs-get-local-symbol-information-at-point' (above)
-           ;; which can return multiple results
-           (list (csense-get-class-information symbol))))))))
+            (or
+             ;; try it as a local symbol
+             (remove-if-not
+              (lambda (symbol-info)
+                (if (and (equal (plist-get symbol-info 'name) symbol)
+                         (or (not array)
+                             (plist-get symbol-info 'array-type)))
+                    (if array
+                        ;; in case of an array reference return the
+                        ;; array type, instead of System.Array
+                        (plist-put symbol-info
+                                   'type (plist-get symbol-info 'array-type))
+                      symbol-info)))
+              (csense-cs-get-local-symbol-information-at-point))
+
+             ;; let's say it's a class
+             ;;
+             ;; wrap the result in a list for consistency with
+             ;; `csense-cs-get-local-symbol-information-at-point' (above)
+             ;; which can return multiple results
+             (list (csense-get-class-information symbol)))))))))
 
 
 (defun csense-get-members-for-symbol (symbol-info)
@@ -684,6 +697,10 @@ The plist values:
   `class-name'
 
     The name of the containing class.
+
+  `base'
+
+    The base class of the containing class.
 "
   (save-excursion
     (let (result)
