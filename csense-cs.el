@@ -203,28 +203,29 @@ directory then it will be used as well.")
 
 (defun csense-cs-get-information-at-point ()
   "Return available information at point."
-  (let ((char-syntax-after (char-syntax (char-after)))
-        (char-syntax-before (char-syntax (char-before))))
-    (if (or (eq char-syntax-before ?w)
-            (eq char-syntax-before ?_)
-            (eq char-syntax-after ?w)
-            (eq char-syntax-after ?_))
-        (let ((infos (csense-cs-get-information-for-symbol-at-point)))
-          (if (> (length infos) 1)
-              ;; overloaded function, check possible invocation
-              (let ((numargs (save-excursion
-                               (skip-syntax-forward "w_")
-                               (skip-syntax-forward "")
-                               (if (looking-at "(")                                   
-                                   (csense-cs-get-num-of-args)))))
-                (if numargs
-                    (setq infos 
-                          (remove-if-not 
-                           (lambda (function)
-                             (= (length (plist-get function 'params))
-                                numargs))
-                           infos)))))
-          infos))))
+  (if (csense-cs-get-function-info)
+      (let ((char-syntax-after (char-syntax (char-after)))
+            (char-syntax-before (char-syntax (char-before))))
+        (if (or (eq char-syntax-before ?w)
+                (eq char-syntax-before ?_)
+                (eq char-syntax-after ?w)
+                (eq char-syntax-after ?_))
+            (let ((infos (csense-cs-get-information-for-symbol-at-point)))
+              (if (> (length infos) 1)
+                  ;; overloaded function, check possible invocation
+                  (let ((numargs (save-excursion
+                                   (skip-syntax-forward "w_")
+                                   (skip-syntax-forward "")
+                                   (if (looking-at "(")                                   
+                                       (csense-cs-get-num-of-args)))))
+                    (if numargs
+                        (setq infos 
+                              (remove-if-not 
+                               (lambda (function)
+                                 (= (length (plist-get function 'params))
+                                    numargs))
+                               infos)))))
+              infos)))))
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
