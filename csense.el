@@ -215,7 +215,7 @@ The plist should have the following properties:
                   (string< (downcase (plist-get first 'name))
                            (downcase (plist-get second 'name)))))))
 
-  ;; collapsed items with the same name into a single item
+  ;; collapse items with the same name into a single item
   ;; the list must already be sorted here
   (let (collapsed)
     (setq csense-completion-candidates
