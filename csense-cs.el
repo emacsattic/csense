@@ -202,7 +202,65 @@ directory then it will be used as well.")
 
 
 (defun csense-cs-get-information-at-point ()
-  "Return available information at point."
+  "Return available information at point or nil.
+
+The return value is a list of plists.
+
+The plists can have have the following properties:
+
+  - name
+
+    The name of the item.
+
+  - type
+
+    The type of the item. For functions this is the return value.
+
+  - array-type
+
+    If type is array the this is the type held by the array.
+
+  - doc
+
+    Documentation. Present only for items retrieved from
+    documented assemblies.
+
+  - file
+
+    Path of the source file where the item was found. Only
+    present for items which have been found via source lookup.
+
+  - pos
+
+    Position of the item in the source file indicated by
+    `file'. 
+
+  - base
+
+    Base class name if the item is a class.
+
+  - params
+
+    List of plists describing parameters. Only present for
+    functions and indexers.
+
+    The plists can have have the following properties:
+
+      - name
+
+        The name of the parameter.
+
+      - type
+
+        The type of the parameter.
+
+  - current-param
+
+    Zero-based index for the current parameter. Present only if
+    the context is a function invocation and index of the current
+    parameter could be determined.
+
+"
   (if (csense-cs-get-function-info)
       (let ((char-syntax-after (char-syntax (char-after)))
             (char-syntax-before (char-syntax (char-before))))

@@ -19,8 +19,6 @@ For release
 
 - caching source class lookups
 
-- document how the backend works
-
 - skip stuff in comments and strings
 
 
