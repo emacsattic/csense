@@ -27,11 +27,15 @@ For release
 
 - document how the backend works
 
+- skip stuff in comments and strings
+
+- handling base.something
+
 
 Someday 
 -------
 
-, handle out/ref parameters
+- handle out/ref parameters
 
 - handle enum
 
@@ -49,19 +53,13 @@ Someday
 
 - handle casting
 
-- overloaded functions differing in param type
-
 - overloading methods with default parameter values
-
-- handling base.something
 
 - skip construtor initializers when parsing function argument
    ...) : base()... 
 
 - using explicit full or partial namespaces as prefix
   (e.g. System.Console after "using System;")
-
-- skip stuff in comments and strings
 
 - function doc for generic methods (e.g. List.Add)
 
