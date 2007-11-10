@@ -19,8 +19,6 @@ For release
 - what should happen if a a standalone symbol is completed? offer
   local variables? (limit: 50)
 
-- exact completion
-
 - static functions
 
 - auto help
