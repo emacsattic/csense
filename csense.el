@@ -70,10 +70,6 @@
   "Keybindings for controlling multi tooltips.")
 
 
-(defface csense-tooltip-header-face
-  '((t (:background "moccasin"))) 
-  "Face for header lines in tooltips.")
-
 (defface csense-multiple-tooltip-indicator-face
   '((t (:background "lawn green")))
   "Face for indicator field which shows the number of current
@@ -700,17 +696,6 @@ beginning."
           (setq components (cdr components)))
 
         (concat ".../" path)))))
-
-
-(defun csense-color-header (str)
-  "Color first line of STR with `csense-tooltip-header-face'."
-  (let ((pos (string-match "\n" str)))
-    (if (not pos)
-        str
-
-      (concat (propertize (substring str 0 (1+ pos))
-                          'face 'csense-tooltip-header-face)
-              (substring str (1+ pos))))))
 
 
 (defun csense-remove-leading-whitespace (str)
