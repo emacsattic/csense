@@ -209,7 +209,22 @@ directory then it will be used as well.")
             (eq char-syntax-before ?_)
             (eq char-syntax-after ?w)
             (eq char-syntax-after ?_))
-        (csense-cs-get-information-for-symbol-at-point))))
+        (let ((infos (csense-cs-get-information-for-symbol-at-point)))
+          (if (> (length infos) 1)
+              ;; overloaded function, check possible invocation
+              (let ((numargs (save-excursion
+                               (skip-syntax-forward "w_")
+                               (skip-syntax-forward "")
+                               (if (looking-at "(")                                   
+                                   (csense-cs-get-num-of-args)))))
+                (if numargs
+                    (setq infos 
+                          (remove-if-not 
+                           (lambda (function)
+                             (= (length (plist-get function 'params))
+                                numargs))
+                           infos)))))
+          infos))))
 
 
 (defun csense-cs-get-completions-for-symbol-at-point ()
@@ -809,6 +824,31 @@ matching groups in REGEXPS."
           list)
     num))
 
+
+(defun csense-cs-get-num-of-args ()
+  "Return number of arguments for a function invocation or nil if it cannot be determined.
+
+Cursor must be before the beginning paren of the invocation."
+  (save-excursion
+    (condition-case nil
+        (let ((end (1- (save-excursion
+                         (forward-sexp)
+                         (point))))
+              (count 0))
+          (skip-syntax-forward " ")
+          (assert (looking-at "("))
+          (forward-char)
+          (skip-syntax-forward " ")
+          (while (< (point) end)
+            (skip-syntax-forward " ")
+            (forward-sexp)
+            (skip-syntax-forward " ")
+            (when (looking-at "[,)]")
+              (incf count)
+              (forward-char)))
+          count)
+      (scan-error nil))))
+           
 
 (provide 'csense-cs)
 ;;; csense-cs.el ends here

@@ -6,8 +6,6 @@ For release
 
 - honor protection levels 
 
-- fun overload by invocation param num
-
 - bold current params
 
 - help for constructors
@@ -36,6 +34,9 @@ Someday
 - handle out/ref parameters
 
 - handle enum
+
+- function invocation should check the type of invocation arguments
+  too if possible to narrow down the list of possible overloads
 
 - overloaded function argument can be base/derived types too
 
