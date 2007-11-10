@@ -269,7 +269,10 @@ directory then it will be used as well.")
 
 
 (defun csense-cs-get-local-symbol-information-at-point ()
-  "Return list of information about symbols locally available at point."
+  "Return list of information about symbols locally available at point.
+
+The list has the same format as the return value of
+`csense-cs-get-information-at-point'."
   (let ((func-info (csense-cs-get-function-info)))
     (if func-info
         (csense-cs-merge-local-symbols
