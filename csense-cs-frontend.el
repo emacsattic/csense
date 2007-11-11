@@ -46,6 +46,10 @@
   '((t (:bold t)))
   "Face for highlighting the current parameter in a function invocation.")
 
+(defface csense-cs-frontend-source-file-path-face
+  '((t (:background "moccasin")))
+  "Face for file path in documentation for symbols retrieved from the source")
+
 ;;;----------------------------------------------------------------------------
 
 (add-hook 'csharp-mode-hook 'csense-cs-frontend-setup)
@@ -106,42 +110,18 @@ completion data for the CSense frontend."
      ;; if it was found in the sources then show the relevant part of
      ;; the source code
      (if (plist-get info 'file)
-         (csense-get-code-context (plist-get info 'file)
-                                  (plist-get info 'pos))
+         (concat (csense-cs-frontend-format-documentation-header info)
+                 "\n\n"
+                 (propertize (csense-truncate-path (plist-get info 'file))
+                             'face 'csense-cs-frontend-source-file-path-face)
+                 ":\n\n"
+                 (csense-get-code-context (plist-get info 'file)
+                                          (plist-get info 'pos)))
 
        ;; othewise format the retrieved documentation
        (let ((doc (plist-get info 'doc)))
          (setq doc
-               (concat (if (plist-get info 'members)
-                           (concat "class " 
-                                   (plist-get info 'name))
-
-                         ;; class member
-                         (concat 
-                          (plist-get info 'type)
-                          " "
-                          (plist-get info 'name)
-
-                          (if (plist-member info 'params)
-                              (concat "("
-                                      (let ((index -1))
-                                        (mapconcat 
-                                         (lambda (param)
-                                           (incf index)
-                                           (let ((paramtext
-                                                  (concat (plist-get param 'type)
-                                                          " "
-                                                          (plist-get param 'name))))
-                                             (if (eq index 
-                                                     (plist-get info 'current-param))
-                                                 (propertize
-                                                  paramtext
-                                                  'face
-                                                  'csense-cs-frontend-current-param-face)
-                                               paramtext)))
-                                         (plist-get info 'params)
-                                         ", "))
-                                      ")"))))
+               (concat (csense-cs-frontend-format-documentation-header info)
                        "\n\n"
                        (if doc
                            ;; remove generics
@@ -164,11 +144,6 @@ completion data for the CSense frontend."
                               doc))
                          "No documentation")))
 
-         ;; replace aliased types with their shorter version
-         (dolist (alias csense-cs-type-aliases)
-           (setq doc (replace-regexp-in-string 
-                      (concat "System." (cdr alias)) (car alias) doc t)))
-
          ;; remove namespace from classnames for readability
          ;; (brute force approach)
          (setq doc (replace-regexp-in-string
@@ -176,6 +151,48 @@ completion data for the CSense frontend."
                     doc))
 
          doc)))))
+
+
+(defun csense-cs-frontend-format-documentation-header (info)
+  "Prepare a formatted documentation header for INFO."
+  (let ((doc
+         (if (plist-get info 'members)
+             (concat "class " 
+                     (plist-get info 'name))
+
+           ;; class member
+           (concat 
+            (plist-get info 'type)
+            " "
+            (plist-get info 'name)
+
+            (if (plist-member info 'params)
+                (concat "("
+                        (let ((index -1))
+                          (mapconcat 
+                           (lambda (param)
+                             (incf index)
+                             (let ((paramtext
+                                    (concat (plist-get param 'type)
+                                            " "
+                                            (plist-get param 'name))))
+                               (if (eq index 
+                                       (plist-get info 'current-param))
+                                   (propertize
+                                    paramtext
+                                    'face
+                                    'csense-cs-frontend-current-param-face)
+                                 paramtext)))
+                           (plist-get info 'params)
+                           ", "))
+                        ")"))))))
+
+    ;; replace aliased types with their shorter version
+    (dolist (alias csense-cs-type-aliases)
+      (setq doc (replace-regexp-in-string 
+                 (concat "System." (cdr alias)) (car alias) doc t)))
+
+    doc))
 
 
 (defun csense-cs-frontend-string-begins-with (str begin)

@@ -629,9 +629,7 @@ and WIDTH in characters."
       (save-excursion
         (goto-char pos)
         (setq result
-              (concat (csense-truncate-path (buffer-file-name))
-                      ":\n\n"
-                      (csense-remove-leading-whitespace
+              (concat (csense-remove-leading-whitespace
                        (concat
                         (buffer-substring (save-excursion
                                             (forward-line -5)

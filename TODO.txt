@@ -21,6 +21,8 @@ For release
 
 - skip stuff in comments and strings
 
+- fix param bolding
+
 
 Someday 
 -------
