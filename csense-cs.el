@@ -370,8 +370,9 @@ The list has the same format as the return value of
          (save-excursion
            (goto-char (plist-get func-info 'class-begin))
            (csense-merge-inherited-members 
-            (csense-cs-get-members
-             (plist-get func-info 'class-name))
+            (plist-get (csense-cs-get-members
+                        (plist-get func-info 'class-name))
+                       'members)
             ;; this should be done via
             ;; `csense-get-members-for-symbol', instead
             ;; of duplicating the code here
@@ -506,59 +507,65 @@ LIMIT is a position limiting the search."
   "Return a list of members for the current class.
 Cursor must be before the opening paren of the class.
 
-CLASS is the name of the class."
+CLASS is the name of the class.
+
+Member are returned as a plist which groups normal
+members ('members) and constructors ('constructors) separately.
+"
   (save-excursion
-    (let ((sections (csense-cs-get-declaration-sections)))
-      (mapcan (lambda (section)
-                (let ((section-begin (car section))
-                      (section-end (cdr section))
-                      members)
-                  (goto-char section-begin)
-                  ;; member variables
-                  (while (re-search-forward
-                          (eval `(rx  ,@csense-cs-typed-symbol-regexp
-                                      (or (and (* space) "=")
-                                          ";")))
-                          section-end t)
-                    (push (csense-cs-get-typed-symbol-regexp-result) members))
+    (let ((sections (csense-cs-get-declaration-sections))
+          constructors members)
+    (dolist (section sections)
+      (let ((section-begin (car section))
+            (section-end (cdr section)))
+        (goto-char section-begin)
+        ;; member variables
+        (while (re-search-forward
+                (eval `(rx  ,@csense-cs-typed-symbol-regexp
+                            (or (and (* space) "=")
+                                ";")))
+                section-end t)
+          (push (csense-cs-get-typed-symbol-regexp-result) members))
 
-                  ;; check possible stuff at end of section
+        ;; check possible stuff at end of section
 
-                  ;; property
-                  (if (re-search-forward
-                       (eval `(rx  ,@csense-cs-typed-symbol-regexp
-                                   (* (or space ?\n)) "{"))
-                       ;; the opening brace of the property is
-                       ;; the section closing brace, so it must
-                       ;; also be included in the match
-                       (1+ section-end) t)
-                      (push (csense-cs-get-typed-symbol-regexp-result) members)
+        ;; property
+        (if (re-search-forward
+             (eval `(rx  ,@csense-cs-typed-symbol-regexp
+                         (* (or space ?\n)) "{"))
+             ;; the opening brace of the property is
+             ;; the section closing brace, so it must
+             ;; also be included in the match
+             (1+ section-end) t)
+            (push (csense-cs-get-typed-symbol-regexp-result) members)
 
-                    ;; member function
-                    (if (and (re-search-forward
-                              (eval `(rx  ,@csense-cs-typed-symbol-regexp
-                                          (* space) "("))
-                              section-end t)
+          ;; member function
+          (if (and (re-search-forward
+                    (eval `(rx  ,@csense-cs-typed-symbol-regexp
+                                (* space) "("))
+                    section-end t)
                                    
-                             ;; closing paren followed by a
-                             ;; an opening brace
-                             (save-match-data
-                               (save-excursion
-                                 (goto-char (1- (match-end 0)))
-                                 (forward-sexp)
-                                 (looking-at (rx (* (or space ?\n)) ?{)))))
-                        (let* ((symbol-info
-                                 (csense-cs-get-typed-symbol-regexp-result))
-                               (name (plist-get symbol-info 'name)))
-                          ;; weed out constructors and Main function
-                          (unless (or (equal name class)
-                                      (equal name "Main"))
-                            (push (plist-put symbol-info 'params
-                                             (csense-cs-get-function-arguments
-                                              section-end))
-                                  members)))))
-                  members))
-              sections))))
+                   ;; closing paren followed by a
+                   ;; an opening brace
+                   (save-match-data
+                     (save-excursion
+                       (goto-char (1- (match-end 0)))
+                       (forward-sexp)
+                       (looking-at (rx (* (or space ?\n)) (or ?{ ?:))))))
+              (let* ((symbol-info (csense-cs-get-typed-symbol-regexp-result))
+                     (name (plist-get symbol-info 'name)))
+                ;; weed out Main function
+                (unless (equal name "Main")
+                  (setq symbol-info 
+                        (plist-put symbol-info 'params
+                                   (csense-cs-get-function-arguments
+                                    section-end)))
+                  (if (equal name class)
+                      ;; constructors have no type
+                      (push (plist-put symbol-info 'type nil) constructors)
+                    (push symbol-info members))))))))
+
+    (list 'constructors constructors 'members members))))
 
 
 (defun csense-cs-get-declaration-sections ()
@@ -811,11 +818,16 @@ container, and return t."
 
                    (let ((base (match-string-no-properties 
                                 (1+ (csense-cs-get-regexp-group-num
-                                     csense-class-base-regexp)))))
+                                     csense-class-base-regexp))))
+                         (pos (match-beginning 1))
+                         (member-info (csense-cs-get-members class)))
                      (setq result (list 'name class
                                         'file file
-                                        'pos (match-beginning 1)
-                                        'members (csense-cs-get-members class)))
+                                        'pos pos
+                                        'members 
+                                        (plist-get member-info 'members)
+                                        'constructors 
+                                        (plist-get member-info 'constructors)))
                      (if base
                          (setq result (plist-put result 'base base)))))))
 

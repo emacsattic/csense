@@ -6,8 +6,6 @@ For release
 
 - honor protection levels 
 
-- help for constructors for source classes
-
 - constructors in completions
 
 - what should happen if a a standalone symbol is completed? offer
