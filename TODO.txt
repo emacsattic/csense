@@ -6,8 +6,6 @@ For release
 
 - honor protection levels 
 
-- constructors in completions
-
 - what should happen if a a standalone symbol is completed? offer
   local variables? (limit: 50)
 
