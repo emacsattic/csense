@@ -193,8 +193,11 @@ completion data for the CSense frontend."
 
     ;; class member
     (concat 
-     (csense-cs-frontend-resolve-type-alias (plist-get info 'type))
-     " "
+     (let ((type (csense-cs-frontend-resolve-type-alias (plist-get info 'type))))
+       (if type
+           (concat type " ")
+         ;; constructors have no type
+         ""))
      (plist-get info 'name)
 
      (if (plist-member info 'params)

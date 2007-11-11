@@ -95,6 +95,8 @@ namespace netsense
 
 					Console.WriteLine("\tmembers (");
 
+					List<ConstructorInfo> constructors = new List<ConstructorInfo>();
+					
 					foreach (MemberInfo member in t.GetMembers(BindingFlags.Public |
 					                                           BindingFlags.Static |
 					                                           BindingFlags.NonPublic |
@@ -104,7 +106,6 @@ namespace netsense
 						string type = null;
 						string extra = null;
 						doc = null;
-						
 						//Console.WriteLine(member.MemberType);
 						
 						switch (member.MemberType)
@@ -113,10 +114,9 @@ namespace netsense
 								// skip class constructors
 								if (member.Name == ".cctor")
 									continue;
-								// and constructors for the time being
-								if (member.Name == ".ctor")
-									continue;
-								break;
+
+								constructors.Add((ConstructorInfo)member);
+								continue;
 								
 							case MemberTypes.Method:
 								{
@@ -173,7 +173,7 @@ namespace netsense
 							default:
 								break;
 						}
-						
+
 						if (type == null)
 							type = member.ReflectedType.FullName;
 						
@@ -190,6 +190,32 @@ namespace netsense
 					}
 
 					Console.WriteLine("\t)");
+
+					if (constructors.Count > 0)
+						Console.WriteLine("\tconstructors (");
+					
+					foreach (ConstructorInfo constructor in constructors)
+					{
+						string signature = getSignature(constructor.GetParameters());
+						signature = "M:" + t.FullName + ".#ctor" +
+							(signature == "" ? "" : "(" + signature + ")");
+						
+						doc = null;
+						docs.TryGetValue(signature, out doc);
+						
+						Console.WriteLine("\t\t(params (\n" +
+							getParamsAsString(constructor.GetParameters(), signature) +
+							"\t\t\t)\n\t\t");
+
+						if (doc != null)
+							Console.Write("\t\tdoc \"" + quote(doc) + "\"");
+						
+						Console.WriteLine(")");
+					}
+					
+					if (constructors.Count > 0)
+						Console.WriteLine("\t)");
+					
 					Console.WriteLine(")");
 
 				}

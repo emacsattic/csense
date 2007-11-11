@@ -244,6 +244,12 @@ The plists can have have the following properties:
     List of members if it is a class. The member is a plist
     having the same properties as described here.
 
+    In addition, if the member info came from an assembly a link
+    to the parent class (with key 'class) is also added to the
+    member properties. (It is not added for classes extracted
+    from the sources, because there was no need for it there
+    yet.)
+
   - params
 
     List of plists describing parameters. Only present for
@@ -279,6 +285,31 @@ The plists can have have the following properties:
                 (eq char-syntax-after ?w)
                 (eq char-syntax-after ?_))
             (let ((infos (csense-cs-get-information-for-symbol-at-point)))
+              ;; if it's a class and invoked as a constructor
+              (when (and (plist-member (car infos) 'members)
+                         (save-excursion
+                           (skip-syntax-forward "w_")
+                           (skip-syntax-forward " ")
+                           (looking-at "(")))
+                ;; in case of a class only single values should be
+                ;; returned
+                (assert (eq (length infos) 1))
+                (let ((class-info (car infos)))
+                  ;; return the list of constructors instead of class
+                  ;; info
+                  ;;
+                  ;; a link to the parent class is put into every constructor
+                  (setq infos 
+                        (mapcar (lambda (constructor)
+                                  (plist-put
+                                   (plist-put constructor 'class class-info)
+                                   'name
+                                   ;; remove namespace from classname
+                                   (replace-regexp-in-string
+                                    "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
+                                    (plist-get class-info 'name))))
+                                (plist-get class-info 'constructors)))))
+
               (if infos
                   ;; overloaded function, check possible invocation
                   (let ((numargs (save-excursion

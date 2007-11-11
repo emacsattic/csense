@@ -6,7 +6,7 @@ For release
 
 - honor protection levels 
 
-- help for constructors
+- help for constructors for source classes
 
 - constructors in completions
 
@@ -69,5 +69,7 @@ Someday
 - tooltip is hidden immediately if mouse cursor is in the way, though
   the cursor is moved away first. why is that?
 
-- extract return value documentation for assemblies
+- extract return value documentation from assemblies
+
+- extract thrown exception documentation from assemblies
 
