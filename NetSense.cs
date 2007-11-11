@@ -54,7 +54,6 @@ namespace netsense
 				}
 			}
 			
-			int count = 15;
 			Assembly asm = Assembly.LoadFile(file);
 			{
 				Console.WriteLine("(");
@@ -181,8 +180,6 @@ namespace netsense
 					Console.WriteLine("\t)");
 					Console.WriteLine(")");
 
-					if (count == 0)
-						break;
 				}
 
 				Console.WriteLine(")");
