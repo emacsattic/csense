@@ -112,9 +112,10 @@ completion data for the CSense frontend."
      (if (plist-get info 'file)
          (concat (csense-cs-frontend-format-documentation-header info)
                  "\n\n"
-                 (propertize (csense-truncate-path (plist-get info 'file))
-                             'face 'csense-cs-frontend-source-file-path-face)
-                 ":\n\n"
+                 (propertize 
+                  (concat (csense-truncate-path (plist-get info 'file)) ":\n")
+                  'face 'csense-cs-frontend-source-file-path-face)
+                 "\n"
                  (csense-get-code-context (plist-get info 'file)
                                           (plist-get info 'pos)))
 
