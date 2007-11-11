@@ -274,7 +274,7 @@ The plists can have have the following properties:
                 (eq char-syntax-after ?w)
                 (eq char-syntax-after ?_))
             (let ((infos (csense-cs-get-information-for-symbol-at-point)))
-              (if (> (length infos) 1)
+              (if infos
                   ;; overloaded function, check possible invocation
                   (let ((numargs (save-excursion
                                    (skip-syntax-forward "w_")
@@ -282,17 +282,19 @@ The plists can have have the following properties:
                                    (if (looking-at "(")                                   
                                        (csense-cs-get-num-of-args)))))
                     (if numargs
-                        (setq infos 
-                              (remove-if-not 
-                               (lambda (function)
-                                 (apply (if (< numargs 0)
-                                            '>=
-                                          '=)
-                                        (list 
-                                         (length (plist-get function 'params))
-                                         (abs numargs))))
-                               infos)))))
-              infos)
+                        (or (remove-if-not 
+                             (lambda (function)
+                               (apply (if (< numargs 0)
+                                          '>=
+                                        '=)
+                                      (list 
+                                       (length (plist-get function 'params))
+                                       (abs numargs))))
+                             infos)
+                            (error (concat "No overloaded function matches "
+                                           "the number of invocation parameters.")))
+
+                      infos))))
 
           ;; check if we're in a function invocation argument list
           (let ((index 0))
