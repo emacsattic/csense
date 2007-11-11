@@ -297,18 +297,7 @@ The plists can have have the following properties:
                 (let ((class-info (car infos)))
                   ;; return the list of constructors instead of class
                   ;; info
-                  ;;
-                  ;; a link to the parent class is put into every constructor
-                  (setq infos 
-                        (mapcar (lambda (constructor)
-                                  (plist-put
-                                   (plist-put constructor 'class class-info)
-                                   'name
-                                   ;; remove namespace from classname
-                                   (replace-regexp-in-string
-                                    "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
-                                    (plist-get class-info 'name))))
-                                (plist-get class-info 'constructors)))))
+                  (setq infos (plist-get class-info 'constructors))))
 
               (if infos
                   ;; overloaded function, check possible invocation
@@ -782,7 +771,21 @@ container, and return t."
        (plist-put class-info
                   'members (mapcar (lambda (member)
                                      (plist-put member 'class class-info))
-                                   (plist-get class-info 'members)))))
+                                   (plist-get class-info 'members)))
+       (let ((class-name 
+              ;; remove namespace from classname
+              (replace-regexp-in-string
+               "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
+               (plist-get class-info 'name))))
+         ;; a link to the parent class is put into every constructor and
+         ;; they are named after the class
+         (plist-put class-info
+                    'constructors 
+                    (mapcar (lambda (constructor)
+                              (plist-put
+                               (plist-put constructor 'class class-info)
+                               'name class-name))
+                            (plist-get class-info 'constructors))))))
 
    ;; try to search for it in the source files
    (some (lambda (file)
