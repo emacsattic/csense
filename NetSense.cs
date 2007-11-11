@@ -29,6 +29,9 @@ namespace netsense
 {
 	public class NetSense
 	{
+		static Dictionary<string, Dictionary<string, string>> param_docs =
+			new Dictionary<string, Dictionary<string, string>>();
+		
 		static void Main(String[] args)
 		{
 			string file = args[0];
@@ -49,18 +52,33 @@ namespace netsense
 						if (reader.ReadToDescendant("summary"))
 						{
 							docs.Add(name, reader.ReadInnerXml());
+							
+							//if (reader.ReadToNextSibling("returns"))
+							//	Console.WriteLine(reader.ReadInnerXml());
+							
+							Dictionary<string, string> parameters =
+								new Dictionary<string, string>();
+							
+							while (reader.ReadToNextSibling("param"))
+							{
+								parameters.Add(reader.GetAttribute("name"),
+								               reader.ReadInnerXml());
+							}
+
+							if (parameters.Count > 0)
+								param_docs.Add(name, parameters);
 						}
 					}
 				}
 			}
-			
+
 			Assembly asm = Assembly.LoadFile(file);
 			{
 				Console.WriteLine("(");
 
 				foreach (Type t in asm.GetTypes())
 				{
-					//if (t.FullName != "System.Void")
+					//if (t.FullName != "System.String")
 					//	continue;
 					
 					Console.WriteLine("(name \"" +
@@ -73,7 +91,7 @@ namespace netsense
 					
 					string doc;
 					if (docs.TryGetValue("T:" + t.FullName, out doc))
-						Console.WriteLine("\tdoc \"" + qoute(doc) + "\"");
+						Console.WriteLine("\tdoc \"" + quote(doc) + "\"");
 
 					Console.WriteLine("\tmembers (");
 
@@ -108,17 +126,13 @@ namespace netsense
 									type = method.ReturnType.FullName;
 									
 									string signature = getSignature(method.GetParameters());
-									extra = "\n\t\tparams (\n";
-									
-									foreach (ParameterInfo param in method.GetParameters())
-										extra += "\t\t\t(name \"" + param.Name +
-											"\" type \"" + param.ParameterType + "\")\n";
-									
-									extra += "\t\t\t)\n\t\t";
-									
 									signature = "M:" + t.FullName + "." + member.Name +
 										(signature == "" ? "" : "(" + signature + ")");
 									docs.TryGetValue(signature, out doc);
+
+									extra = "\n\t\tparams (\n" +
+										getParamsAsString(method.GetParameters(), signature) +
+										"\t\t\t)\n\t\t";
 								}
 								break;
 								
@@ -135,19 +149,17 @@ namespace netsense
 										continue;
 
 									string signature = getSignature(property.GetIndexParameters());
-									extra = "";
+									signature = "P:" + t.FullName + "." + member.Name +
+										(signature == "" ? "" : "(" + signature + ")");
+									docs.TryGetValue(signature, out doc);
 									
-									foreach (ParameterInfo param in property.GetIndexParameters())
-										extra += "\t\t\t(name \"" + param.Name +
-											"\" type \"" + param.ParameterType + "\")\n";
+									extra = getParamsAsString(property.GetIndexParameters(),
+									                          signature);
 									
 									if (extra != "")
 										extra = "\n\t\tparams (\n" + extra + "\t\t\t)\n\t\t";
 
 									type = property.PropertyType.FullName;
-									docs.TryGetValue("P:" + t.FullName + "." + member.Name +
-									                 (signature == "" ? "" : "(" + signature + ")"),
-									                 out doc);
 								}
 								break;
 								
@@ -169,7 +181,7 @@ namespace netsense
 						              "type \"" + type + "\"");
 						
 						if (doc != null)
-							Console.Write(" doc \"" + qoute(doc) + "\"");
+							Console.Write(" doc \"" + quote(doc) + "\"");
 						
 						if (extra != null)
 							Console.Write(extra);
@@ -193,7 +205,7 @@ namespace netsense
 			return method.IsPrivate || method.IsAssembly;
 		}
 
-		static string qoute(string text)
+		static string quote(string text)
 		{
 			return text.Replace(@"\", @"\\").Replace("\"", "\\\"");
 		}
@@ -207,5 +219,28 @@ namespace netsense
 			
 			return signature;
 		}
+
+		
+		static string getParamsAsString(ParameterInfo[] parameters, string signature)
+		{
+			Dictionary<string, string> docs = null;
+			param_docs.TryGetValue(signature, out docs);
+			
+			string result = "";
+			foreach (ParameterInfo param in parameters)
+			{
+				string doc = null;
+				if (docs != null)
+					docs.TryGetValue(param.Name, out doc);
+				
+				result += "\t\t\t(name \"" + param.Name +
+					"\" type \"" + param.ParameterType + "\"" +
+					(doc == null ? "" : " doc \"" + quote(doc) + "\"") +
+					")\n";
+			}
+			
+			return result;
+		}
+
 	}
 }

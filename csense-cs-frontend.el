@@ -124,26 +124,57 @@ completion data for the CSense frontend."
          (setq doc
                (concat (csense-cs-frontend-format-documentation-header info)
                        "\n\n"
-                       (if doc
-                           ;; remove generics
-                           (replace-regexp-in-string
-                            "`[0-9]+" ""
-                            ;; format references
-                            (let ((pos -1))
-                              (while (setq pos (string-match 
-                                                (rx "<see cref=\"" nonl ":" 
-                                                    (group (*? nonl))
-                                                    "\"></see>")
-                                                doc (1+ pos)))
-                                (setq doc
-                                      (replace-match 
-                                       (propertize 
-                                        (match-string 1 doc) 
-                                        'face
-                                        'csense-cs-frontend-reference-face)
-                                       nil nil doc)))
-                              doc))
-                         "No documentation")))
+                       (if (not doc)
+                           "No documentation"
+
+                         ;; if parameters are documented then add
+                         ;; their documentation to doc remove generics
+                         (if (and (plist-member info 'params)
+                                  (plist-get info 'params)
+                                  (plist-get (car (plist-get info 'params))
+                                             'doc))
+                             (setq doc
+                                   (concat 
+                                    doc 
+                                    "\n\nParameters:\n\n"
+                                    (let ((index -1))
+                                      (mapconcat 
+                                       (lambda (param)
+                                         (incf index)
+                                         (let ((paramdoc
+                                                (concat
+                                                 "  "
+                                                 (plist-get param 'name)
+                                                 " - "
+                                                 (plist-get param 'doc))))
+                                           (if (eq index (plist-get 
+                                                          info
+                                                          'current-param))
+                                               (propertize
+                                                paramdoc
+                                                'face
+                                                'csense-cs-frontend-current-param-face)
+                                             paramdoc)))
+                                       (plist-get info 'params)
+                                                 "\n\n")))))
+                         
+                         (replace-regexp-in-string
+                          "`[0-9]+" ""
+                          ;; format references
+                          (let ((pos -1))
+                            (while (setq pos (string-match 
+                                              (rx "<see cref=\"" nonl ":" 
+                                                  (group (*? nonl))
+                                                  "\"></see>")
+                                              doc (1+ pos)))
+                              (setq doc
+                                    (replace-match 
+                                     (propertize 
+                                      (match-string 1 doc) 
+                                      'face
+                                      'csense-cs-frontend-reference-face)
+                                     nil nil doc)))
+                            doc)))))
 
          ;; remove namespace from classnames for readability
          ;; (brute force approach)
@@ -188,8 +219,6 @@ completion data for the CSense frontend."
                     (plist-get info 'params)
                     ", "))
                  ")")))))
-
-    doc))
 
 
 (defun csense-cs-frontend-resolve-type-alias (type)

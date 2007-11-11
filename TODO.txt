@@ -8,8 +8,6 @@ For release
 
 - help for constructors
 
-- parameter documentation
-
 - constructors in completions
 
 - what should happen if a a standalone symbol is completed? offer
@@ -21,6 +19,8 @@ For release
 
 - skip stuff in comments and strings
 
+- handle enum
+
 
 Someday 
 -------
@@ -28,8 +28,6 @@ Someday
 - auto help
 
 - handle out/ref parameters
-
-- handle enum
 
 - function invocation should check the type of invocation arguments
   too if possible to narrow down the list of possible overloads
@@ -70,4 +68,6 @@ Someday
 
 - tooltip is hidden immediately if mouse cursor is in the way, though
   the cursor is moved away first. why is that?
+
+- extract return value documentation for assemblies
 

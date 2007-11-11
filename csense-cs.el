@@ -259,6 +259,11 @@ The plists can have have the following properties:
 
         The type of the parameter.
 
+      - doc
+
+        Documentation. Present only for items retrieved from
+        documented assemblies.
+
   - current-param
 
     Zero-based index for the current parameter. Present only if
