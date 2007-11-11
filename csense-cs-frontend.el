@@ -156,44 +156,50 @@ completion data for the CSense frontend."
 
 (defun csense-cs-frontend-format-documentation-header (info)
   "Prepare a formatted documentation header for INFO."
-  (let ((doc
-         (if (plist-get info 'members)
-             (concat "class " 
-                     (plist-get info 'name))
+  (if (plist-get info 'members)
+      (concat "class " 
+              (plist-get info 'name))
 
-           ;; class member
-           (concat 
-            (plist-get info 'type)
-            " "
-            (plist-get info 'name)
+    ;; class member
+    (concat 
+     (csense-cs-frontend-resolve-type-alias (plist-get info 'type))
+     " "
+     (plist-get info 'name)
 
-            (if (plist-member info 'params)
-                (concat "("
-                        (let ((index -1))
-                          (mapconcat 
-                           (lambda (param)
-                             (incf index)
-                             (let ((paramtext
-                                    (concat (plist-get param 'type)
-                                            " "
-                                            (plist-get param 'name))))
-                               (if (eq index 
-                                       (plist-get info 'current-param))
-                                   (propertize
-                                    paramtext
-                                    'face
-                                    'csense-cs-frontend-current-param-face)
-                                 paramtext)))
-                           (plist-get info 'params)
-                           ", "))
-                        ")"))))))
-
-    ;; replace aliased types with their shorter version
-    (dolist (alias csense-cs-type-aliases)
-      (setq doc (replace-regexp-in-string 
-                 (concat "System." (cdr alias)) (car alias) doc t)))
+     (if (plist-member info 'params)
+         (concat "("
+                 (let ((index -1))
+                   (mapconcat 
+                    (lambda (param)
+                      (incf index)
+                      (let ((paramtext
+                             (concat
+                              (csense-cs-frontend-resolve-type-alias
+                               (plist-get param 'type))
+                              " "
+                              (plist-get param 'name))))
+                        (if (eq index 
+                                (plist-get info 'current-param))
+                            (propertize
+                             paramtext
+                             'face
+                             'csense-cs-frontend-current-param-face)
+                          paramtext)))
+                    (plist-get info 'params)
+                    ", "))
+                 ")")))))
 
     doc))
+
+
+(defun csense-cs-frontend-resolve-type-alias (type)
+  "Replace TYPE with the corresponding alias if it has any."
+  (or (some (lambda (alias)
+              (if (equal (concat "System." (cdr alias)) type)
+                  (car alias)))
+            csense-cs-type-aliases)
+
+      type))
 
 
 (defun csense-cs-frontend-string-begins-with (str begin)
