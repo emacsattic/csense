@@ -525,7 +525,10 @@ members ('members) and constructors ('constructors) separately.
                             (or (and (* space) "=")
                                 ";")))
                 section-end t)
-          (push (csense-cs-get-typed-symbol-regexp-result) members))
+          (push (csense-cs-get-typed-symbol-regexp-result) members)
+          ;; skip remainder of line if necessary
+          (if (eq (char-before) ?=)
+              (search-forward ";" section-end t)))
 
         ;; check possible stuff at end of section
 
@@ -577,7 +580,36 @@ members ('members) and constructors ('constructors) separately.
                       (push (plist-put symbol-info 'type nil) constructors)
                     (push symbol-info members))))))))
 
-    (list 'constructors constructors 'members members))))
+    (list 'constructors (mapcar 'csense-cs-get-member-modifiers constructors)
+          'members (mapcar 'csense-cs-get-member-modifiers members)))))
+
+
+(defun csense-cs-get-member-modifiers (symbol-info)
+  "Get modifiers for class member described by SYMBOL-INFO."
+  (save-excursion
+    (goto-char (plist-get symbol-info 'pos))
+    (let (modifiers)
+      (condition-case nil
+          (while (progn (with-syntax-table
+                            csense-cs-newline-whitespace-syntax-table
+                          (skip-syntax-backward " "))
+                        (not (or (eq (char-before) ?\;)
+                                 (eq (char-before) ?})
+                                 (eq (char-before) ?{))))
+            (let ((end (point)))
+              (backward-sexp)
+              (push (buffer-substring-no-properties (point) end) modifiers)))
+        (scan-error nil))
+
+      (append
+       (plist-put symbol-info
+                  'access (if (member "public" modifiers)
+                              'public
+                            (if (member "protected" modifiers)
+                                'protected
+                              'private)))
+       (if (member "static" modifiers)
+           (list 'static t))))))
 
 
 (defun csense-cs-get-declaration-sections ()
