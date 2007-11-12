@@ -4,8 +4,6 @@ Things to do
 For release
 -----------
 
-- honor protection levels 
-
 - what should happen if a a standalone symbol is completed? offer
   local variables? (limit: 50)
 
@@ -20,6 +18,8 @@ For release
 
 Someday 
 -------
+
+- honor protection levels 
 
 - auto help
 
