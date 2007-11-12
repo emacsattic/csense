@@ -288,6 +288,13 @@ The plists can have have the following properties:
     the context is a function invocation and index of the current
     parameter could be determined.
 
+  - source-context
+
+    Indicates in which context the symbol has been found in the
+    sources. Currently, the only possible value is 'class which
+    means the symbol was an actual class name in the source
+    code.
+
 "
   (if (csense-cs-get-function-info)
       (let ((char-syntax-after (char-syntax (char-after)))
@@ -750,7 +757,8 @@ The return value is a list of plists."
              ;; wrap the result in a list for consistency with
              ;; `csense-cs-get-local-symbol-information-at-point' (above)
              ;; which can return multiple results
-             (list (csense-get-class-information symbol)))))))))
+             (list (plist-put (csense-get-class-information symbol)
+                              'source-context 'class)))))))))
 
 
 (defun csense-get-members-for-symbol (symbol-info)
@@ -761,7 +769,10 @@ The return value is a list of plists."
                       (csense-get-class-information
                        (plist-get symbol-info 'type)))))
     (csense-merge-inherited-members 
-     (plist-get class-info 'members)
+     (remove-if (lambda (member)
+                  (and (eq (plist-get class-info 'source-context) 'class)
+                       (not (plist-get member 'static))))
+                (plist-get class-info 'members))
      (if (plist-get class-info 'base)
          (csense-get-members-for-symbol
           (csense-get-class-information (plist-get class-info 'base)))))))
@@ -801,99 +812,107 @@ container, and return t."
 
 
 (defun csense-get-class-information (class)
-  "Look up and return information about CLASS. See Assumptions."
-  (or 
-   (let ((class-info
-          ;; maybe it's a fully qualified class name in an assembly
-          (gethash class csense-cs-type-hash)))
-     (unless class-info
-       ;; try usings
-       (save-excursion
-         (goto-char (point-min))
-         (while (and (not class-info)
-                     (re-search-forward (rx line-start (* space) 
-                                            "using" (+ space) 
-                                            (group (+ nonl)) (* space) ";")
-                                        nil t))
-           (let ((class-name (concat (match-string-no-properties 1) 
-                                     "." class)))
-             ;; handle aliases
-             (some (lambda (alias)
-                     (if (equal class-name (concat "System." (car alias)))
-                         (setq class-name (concat "System." (cdr alias)))))
-                   csense-cs-type-aliases)
+  "Look up and return information about CLASS."
+  (or (csense-cs-get-class-information-from-assembly class)
+      (csense-cs-get-class-information-from-source class)
+      (error "Class '%s' not found. Are you perhaps missing an assembly?" class)))
 
-             (setq class-info (gethash class-name csense-cs-type-hash))))))
 
-     (when class-info
-       ;; copy tree is done, so that destructive operations on the result
-       ;; do not affect the hash contents
-       (setq class-info (copy-tree class-info))
+(defun csense-cs-get-class-information-from-assembly (class)
+  "Look up and return information about CLASS from the known
+assemblies or nil if no class is found."
+  (let ((class-info
+         ;; maybe it's a fully qualified class name in an assembly
+         (gethash class csense-cs-type-hash)))
+    (unless class-info
+      ;; try usings
+      (save-excursion
+        (goto-char (point-min))
+        (while (and (not class-info)
+                    (re-search-forward (rx line-start (* space) 
+                                           "using" (+ space) 
+                                           (group (+ nonl)) (* space) ";")
+                                       nil t))
+          (let ((class-name (concat (match-string-no-properties 1) 
+                                    "." class)))
+            ;; handle aliases
+            (some (lambda (alias)
+                    (if (equal class-name (concat "System." (car alias)))
+                        (setq class-name (concat "System." (cdr alias)))))
+                  csense-cs-type-aliases)
 
-       ;; a link to the parent class is put into every member
-       (plist-put class-info
-                  'members (mapcar (lambda (member)
-                                     (plist-put member 'class class-info))
-                                   (plist-get class-info 'members)))
-       (let ((class-name 
-              ;; remove namespace from classname
-              (replace-regexp-in-string
-               "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
-               (plist-get class-info 'name))))
-         ;; a link to the parent class is put into every constructor and
-         ;; they are named after the class
-         (plist-put class-info
-                    'constructors 
-                    (mapcar (lambda (constructor)
-                              (plist-put
-                               (plist-put constructor 'class class-info)
-                               'name class-name))
-                            (plist-get class-info 'constructors))))))
+            (setq class-info (gethash class-name csense-cs-type-hash))))))
 
-   ;; try to search for it in the source files
-   (some (lambda (file)
-           (let* ((buffer (get-file-buffer file))
-                  result kill)
-             (unless buffer
-               (setq buffer (find-file-noselect file))
-               (setq kill t))
+    (when class-info
+      ;; copy tree is done, so that destructive operations on the result
+      ;; do not affect the hash contents
+      (setq class-info (copy-tree class-info))
 
-             (with-current-buffer buffer
-               (save-excursion
-                 (goto-char (point-min))
-                 (when (re-search-forward 
-                        (eval `(rx "class" (+ space)
-                                   symbol-start (group ,class) symbol-end
-                                   ,@csense-class-base-regexp))
-                        nil t)
-                   ;; position the cursor for csense-cs-get-members
-                   ;; FIXME: it should be done some other way, it's clumsy
-                   (with-syntax-table 
-                       csense-cs-newline-whitespace-syntax-table
-                     (skip-syntax-forward " "))
+      ;; a link to the parent class is put into every member
+      (plist-put class-info
+                 'members (mapcar (lambda (member)
+                                    (plist-put member 'class class-info))
+                                  (plist-get class-info 'members)))
+      (let ((class-name 
+             ;; remove namespace from classname
+             (replace-regexp-in-string
+              "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
+              (plist-get class-info 'name))))
+        ;; a link to the parent class is put into every constructor and
+        ;; they are named after the class
+        (plist-put class-info
+                   'constructors 
+                   (mapcar (lambda (constructor)
+                             (plist-put
+                              (plist-put constructor 'class class-info)
+                              'name class-name))
+                           (plist-get class-info 'constructors)))))))
 
-                   (let ((base (match-string-no-properties 
-                                (1+ (csense-cs-get-regexp-group-num
-                                     csense-class-base-regexp))))
-                         (pos (match-beginning 1))
-                         (member-info (csense-cs-get-members class)))
-                     (setq result (list 'name class
-                                        'file file
-                                        'pos pos
-                                        'members 
-                                        (plist-get member-info 'members)
-                                        'constructors 
-                                        (plist-get member-info 'constructors)))
-                     (if base
-                         (setq result (plist-put result 'base base)))))))
 
-             (if kill
-                 (kill-buffer buffer))
+(defun csense-cs-get-class-information-from-source (class)
+  "Look up and return information about CLASS from the known
+sources or nil if no class is found."
+  (some (lambda (file)
+          (let* ((buffer (get-file-buffer file))
+                 result kill)
+            (unless buffer
+              (setq buffer (find-file-noselect file))
+              (setq kill t))
 
-             result))
-         csense-cs-source-files)
+            (with-current-buffer buffer
+              (save-excursion
+                (goto-char (point-min))
+                (when (re-search-forward 
+                       (eval `(rx "class" (+ space)
+                                  symbol-start (group ,class) symbol-end
+                                  ,@csense-class-base-regexp))
+                       nil t)
+                  ;; position the cursor for csense-cs-get-members
+                  ;; FIXME: it should be done some other way, it's clumsy
+                  (with-syntax-table 
+                      csense-cs-newline-whitespace-syntax-table
+                    (skip-syntax-forward " "))
 
-   (error "Class '%s' not found. Are you perhaps missing an assembly?" class)))
+                  (let ((base (match-string-no-properties 
+                               (1+ (csense-cs-get-regexp-group-num
+                                    csense-class-base-regexp))))
+                        (pos (match-beginning 1))
+                        (member-info (csense-cs-get-members class)))
+                    (setq result (list 'name class
+                                       'file file
+                                       'pos pos
+                                       'members 
+                                       (plist-get member-info 'members)
+                                       'constructors 
+                                       (plist-get member-info 'constructors)))
+                    (if base
+                        (setq result (plist-put result 'base base)))))))
+
+            (if kill
+                (kill-buffer buffer))
+
+            result))
+        csense-cs-source-files))
 
 
 (defun csense-cs-get-function-info ()

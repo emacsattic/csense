@@ -13,8 +13,6 @@ For release
 
 - handle enum
 
-- static functions
-
 - honor protection levels 
 
 

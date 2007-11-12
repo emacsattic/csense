@@ -193,6 +193,8 @@ completion data for the CSense frontend."
 
     ;; class member
     (concat 
+     (if (plist-get info 'static)
+         "static ")
      (let ((type (csense-cs-frontend-resolve-type-alias (plist-get info 'type))))
        (if type
            (concat type " ")
