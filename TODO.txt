@@ -7,8 +7,6 @@ For release
 - what should happen if a a standalone symbol is completed? offer
   local variables? (limit: 50)
 
-- static functions
-
 - caching source class lookups
 
 - skip stuff in comments and strings
@@ -18,6 +16,8 @@ For release
 
 Someday 
 -------
+
+- static functions
 
 - honor protection levels 
 
