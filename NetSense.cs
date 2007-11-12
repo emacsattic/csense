@@ -106,6 +106,9 @@ namespace netsense
 						string type = null;
 						string extra = null;
 						doc = null;
+						bool isstatic = false;
+						string access = "protected";
+						
 						//Console.WriteLine(member.MemberType);
 						
 						switch (member.MemberType)
@@ -130,6 +133,11 @@ namespace netsense
 										(signature == "" ? "" : "(" + signature + ")");
 									docs.TryGetValue(signature, out doc);
 
+									isstatic = method.IsStatic;
+									
+									if (method.IsPublic)
+										access = "public";
+									
 									extra = "\n\t\tparams (\n" +
 										getParamsAsString(method.GetParameters(), signature) +
 										"\t\t\t)\n\t\t";
@@ -153,6 +161,8 @@ namespace netsense
 										(signature == "" ? "" : "(" + signature + ")");
 									docs.TryGetValue(signature, out doc);
 									
+									access = "public";
+									
 									extra = getParamsAsString(property.GetIndexParameters(),
 									                          signature);
 									
@@ -168,6 +178,12 @@ namespace netsense
 								if (field.IsPrivate || field.IsAssembly)
 									continue;
 								docs.TryGetValue("F:" + t.FullName + "." + member.Name, out doc);
+
+								isstatic = field.IsStatic;
+
+								if (field.IsPublic)
+									access = "public";
+
 								break;
 								
 							default:
@@ -183,6 +199,11 @@ namespace netsense
 						if (doc != null)
 							Console.Write(" doc \"" + quote(doc) + "\"");
 						
+						if (isstatic)
+							Console.Write(" static t");
+						
+						Console.Write(" access " + access);
+						
 						if (extra != null)
 							Console.Write(extra);
 						
@@ -196,6 +217,9 @@ namespace netsense
 					
 					foreach (ConstructorInfo constructor in constructors)
 					{
+						if (constructor.IsPrivate || constructor.IsAssembly)
+							continue;
+							
 						string signature = getSignature(constructor.GetParameters());
 						signature = "M:" + t.FullName + ".#ctor" +
 							(signature == "" ? "" : "(" + signature + ")");
@@ -204,11 +228,13 @@ namespace netsense
 						docs.TryGetValue(signature, out doc);
 						
 						Console.WriteLine("\t\t(params (\n" +
-							getParamsAsString(constructor.GetParameters(), signature) +
-							"\t\t\t)\n\t\t");
+						                  getParamsAsString(constructor.GetParameters(), signature) +
+						                  "\t\t\t)\n\t\t");
 
 						if (doc != null)
-							Console.Write("\t\tdoc \"" + quote(doc) + "\"");
+							Console.Write("\t\tdoc \"" + quote(doc) + "\"" +
+							              " access " +
+							              (constructor.IsPublic ? "public" : "protected"));
 						
 						Console.WriteLine(")");
 					}
