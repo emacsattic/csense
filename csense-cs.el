@@ -546,7 +546,7 @@ members ('members) and constructors ('constructors) separately.
                     section-end t)
                                    
                    ;; closing paren followed by a
-                   ;; an opening brace
+                   ;; an opening brace or colon (base class constructor)
                    (save-match-data
                      (save-excursion
                        (goto-char (1- (match-end 0)))
