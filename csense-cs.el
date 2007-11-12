@@ -380,14 +380,14 @@ The list has the same format as the return value of
         (csense-cs-merge-local-symbols
          (csense-cs-get-local-variables func-info)
          (save-excursion
+           ;; this should be done via
+           ;; `csense-get-members-for-symbol', instead
+           ;; of duplicating the code here
            (goto-char (plist-get func-info 'class-begin))
            (csense-merge-inherited-members 
             (plist-get (csense-cs-get-members
                         (plist-get func-info 'class-name))
                        'members)
-            ;; this should be done via
-            ;; `csense-get-members-for-symbol', instead
-            ;; of duplicating the code here
             (if (plist-get func-info 'base)
                 (csense-get-members-for-symbol
                  (csense-get-class-information
