@@ -242,13 +242,25 @@ The plists can have have the following properties:
   - members
 
     List of members if it is a class. The member is a plist
-    having the same properties as described here.
+    having the same properties as described above and below.
 
-    In addition, if the member info came from an assembly a link
-    to the parent class (with key 'class) is also added to the
-    member properties. (It is not added for classes extracted
-    from the sources, because there was no need for it there
-    yet.)
+    In addition the member can have the following properties:
+
+       - class
+
+         A link to the parent class if the member info came from
+         an assembly. (It is not added for classes extracted from
+         the sources, because there was no need for it there
+         yet.)
+
+       - access
+
+         Access level of the member: `private', `protected' or `public'
+
+       - static
+
+         If this property is present (its value is always t) then
+         it's a static member.
 
   - params
 
