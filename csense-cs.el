@@ -540,6 +540,17 @@ members ('members) and constructors ('constructors) separately.
             (push (csense-cs-get-typed-symbol-regexp-result) members)
 
           ;; member function
+          ;;
+          ;; Note that the code below matches constructors only,
+          ;; because they usually have some modifier before their name
+          ;; (e.g. public), so the modifier is matched as the "type"
+          ;; in the regexp.
+          ;;
+          ;; This is nasty, of course, but convenient, because the
+          ;; same regexp can be used to match constrcutors too, so I
+          ;; leave it as is until there is a special need to handle
+          ;; private constructors too (which are not matched if they
+          ;; haven't any modifier).
           (if (and (re-search-forward
                     (eval `(rx  ,@csense-cs-typed-symbol-regexp
                                 (* space) "("))
@@ -561,7 +572,8 @@ members ('members) and constructors ('constructors) separately.
                                    (csense-cs-get-function-arguments
                                     section-end)))
                   (if (equal name class)
-                      ;; constructors have no type
+                      ;; constructors have no type, see the comment
+                      ;; above
                       (push (plist-put symbol-info 'type nil) constructors)
                     (push symbol-info members))))))))
 
