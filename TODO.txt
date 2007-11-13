@@ -11,10 +11,6 @@ For release
 
 - skip stuff in comments and strings
 
-- []
-
-- < < > >
-
 
 Someday 
 -------
@@ -25,6 +21,8 @@ Someday
 - handle name lookup for embedded classes and types
 
 - handle enum
+
+- handle [][]
 
 - auto help (with internal error handling)
 
