@@ -145,9 +145,14 @@ directory then it will be used as well.")
 (modify-syntax-entry ?\n " " csense-cs-newline-whitespace-syntax-table)
 
 
+(defconst csense-cs-type-cache-file "type-cache"
+  "Name of cache file containing known type information from the source.")
+
+
 (add-hook 'csharp-mode-hook 'csense-setup)
 (add-hook 'csharp-mode-hook 'csense-cs-setup)
-  
+(add-hook 'kill-emacs-hook 'csense-cs-save-cached-types)
+
 
 (defun csense-cs-setup ()
   "Setup C# backend for the current buffer."
@@ -180,9 +185,19 @@ directory then it will be used as well.")
                                      nil t nil assembly)
                        0)
               (error "Cannot load information from assembly: %s" assembly))
-            (csense-cs-read-assembly-info)))
+            (csense-cs-read-assembly-info)))))
 
-        (message "Done.")))))
+    ;; read types cached from source files
+    (let ((cache-file (concat (file-name-as-directory csense-cs-cache-directory)
+                              csense-cs-type-cache-file)))
+      (message "Loading cached C# type information.")
+      (if (file-readable-p cache-file)
+          (dolist (type (with-temp-buffer
+                          (insert-file-contents cache-file)
+                          (read (current-buffer))))
+        (puthash (plist-get type 'name) type csense-cs-type-hash))))
+
+    (message "Done.")))
 
 
 (defun csense-cs-read-assembly-info ()
@@ -199,6 +214,21 @@ directory then it will be used as well.")
            (error (concat "Couldn't read information from "
                           "assembly. See the *Messages* buffer "
                           "for details.")))))
+
+
+(defun csense-cs-save-cached-types ()
+  "Saved cached type information for source files."
+  (let ((cache-file (concat (file-name-as-directory csense-cs-cache-directory)
+                            csense-cs-type-cache-file)))
+      (message "Saving cached C# type information for CSense.")
+      (with-temp-file cache-file
+        (pp (let (values)
+              (maphash (lambda (k v)
+                         (if (plist-get v 'file)
+                             (push v values)))
+                       csense-cs-type-hash)
+              values)
+            (current-buffer)))))
 
 
 (defun csense-cs-get-information-at-point ()
@@ -937,9 +967,11 @@ sources or nil if no class is found."
                     (if base
                         (setq result (plist-put result 'base base)))
 
-                    (puthash class (plist-put result 
-                                              'timestamp (float-time))
-                             csense-cs-type-hash)
+                    (setq result (plist-put result 'timestamp (float-time)))
+
+                    ;; copy tree is done, so that destructive operations on the result
+                    ;; do not affect the hash contents
+                    (puthash class (copy-tree result) csense-cs-type-hash)
 
                     (csense-debug "Class %s is found in sources." class)))))
 
