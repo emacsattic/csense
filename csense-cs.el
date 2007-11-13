@@ -431,7 +431,7 @@ The list has the same format as the return value of
                      'members)
           (if (plist-get func-info 'base)
               (csense-cs-get-accessible-inherited-members
-               (plist-get func-info 'base)))))))))
+               (plist-get func-info 'base))))))))
 
 
 (defun csense-cs-get-local-variables (func-info)
