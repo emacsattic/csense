@@ -1,6 +1,8 @@
 Things to do
 ============
 
+- optimizations
+
 - class completion
 
 - skip stuff in comments and strings
