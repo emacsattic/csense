@@ -162,8 +162,8 @@ directory then it will be used as well.")
              (concat (file-name-as-directory csense-cs-cache-directory)
                      (file-name-nondirectory assembly))))
         (if (and (file-readable-p cache-file)
-                 (< (float-time (sixth (file-attributes assembly)))
-                    (float-time (sixth (file-attributes cache-file)))))
+                 (< (csense-cs-get-file-modification-time assembly)
+                    (csense-cs-get-file-modification-time cache-file)))
             (progn
               (message "Loading cached information for assembly: %s" assembly)
               (with-temp-buffer
@@ -827,55 +827,74 @@ container, and return t."
 
 (defun csense-get-class-information (class)
   "Look up and return information about CLASS."
-  (or (csense-cs-get-class-information-from-assembly class)
+  (or (csense-cs-get-class-information-from-cache class)
       (csense-cs-get-class-information-from-source class)
       (error "Class '%s' not found. Are you perhaps missing an assembly?" class)))
 
 
-(defun csense-cs-get-class-information-from-assembly (class)
-  "Look up and return information about CLASS from the known
-assemblies or nil if no class is found."
-  (let ((class-info
-         ;; maybe it's a fully qualified class name in an assembly
-         (gethash class csense-cs-type-hash)))
-    (unless class-info
-      ;; try usings
-      (save-excursion
-        (goto-char (point-min))
-        (while (and (not class-info)
-                    (re-search-forward (rx line-start (* space) 
-                                           "using" (+ space) 
-                                           (group (+ nonl)) (* space) ";")
-                                       nil t))
-          (let ((class-name (concat (match-string-no-properties 1) 
-                                    "." class)))
-            ;; handle aliases
-            (some (lambda (alias)
-                    (if (equal class-name (concat "System." (car alias)))
-                        (setq class-name (concat "System." (cdr alias)))))
-                  csense-cs-type-aliases)
+(defun csense-cs-get-class-information-from-cache (class)
+  "Look up and return information about CLASS from
+`csense-cs-type-hash' or nil if no class is found."
+  (let ((class-info (gethash class csense-cs-type-hash)))
+    (if (plist-get class-info 'file)
+        (if class-info
+            ;; in case of classes found in the sources check if the source did
+            ;; not change in the meantime
+            (when (< (plist-get class-info 'timestamp)
+                     (csense-cs-get-file-modification-time 
+                      (plist-get class-info 'file)))
+              (remhash class csense-cs-type-hash)
+              (setq class-info nil)
+              (csense-debug (concat "Class %s was found in cache, "
+                                    "but the entry was obsoleted.") class)))
 
-            (setq class-info (gethash class-name csense-cs-type-hash))))))
+      (unless class-info
+        ;; usings are not tried for source classes, because
+        ;; namespaces are not yet handled for the sources
+        ;;
+        ;; try usings
+        (save-excursion
+          (goto-char (point-min))
+          (while (and (not class-info)
+                      (re-search-forward (rx line-start (* space) 
+                                             "using" (+ space) 
+                                             (group (+ nonl)) (* space) ";")
+                                         nil t))
+            (let ((class-name (concat (match-string-no-properties 1) 
+                                      "." class)))
+              ;; handle aliases
+              (some (lambda (alias)
+                      (if (equal class-name (concat "System." (car alias)))
+                          (setq class-name (concat "System." (cdr alias)))))
+                    csense-cs-type-aliases)
+
+              (setq class-info (gethash class-name csense-cs-type-hash)))))))
 
     (when class-info
+      (csense-debug "Class %s is found in cache." class)
+
       ;; copy tree is done, so that destructive operations on the result
       ;; do not affect the hash contents
       (setq class-info (copy-tree class-info))
 
-      ;; a link to the parent class is put into every member
-      (plist-put class-info
-                 'members (mapcar (lambda (member)
-                                    (plist-put member 'class class-info))
-                                  (plist-get class-info 'members)))
-      ;; a link to the parent class is put into every constructor and
-      ;; they are named after the class
-      (plist-put class-info
-                 'constructors 
-                 (mapcar (lambda (constructor)
-                           (plist-put
-                            (plist-put constructor 'class class-info)
-                            'name (plist-get class-info 'shortname)))
-                         (plist-get class-info 'constructors))))))
+      (if (plist-get class-info 'file)
+          class-info
+
+        ;; a link to the parent class is put into every member
+        (setq class-info
+              (plist-put class-info
+                         'members (mapcar (lambda (member)
+                                            (plist-put member 'class class-info))
+                                          (plist-get class-info 'members))))
+        ;; a link to the parent class is put into every constructor and
+        ;; they are named after the class
+        (plist-put class-info
+                   'constructors 
+                   (mapcar (lambda (constructor)
+                             (plist-put
+                              (plist-put constructor 'class class-info)
+                              'name (plist-get class-info 'shortname)))
+                           (plist-get class-info 'constructors)))))))
 
 
 (defun csense-cs-get-class-information-from-source (class)
@@ -885,7 +904,7 @@ sources or nil if no class is found."
           (let* ((buffer (get-file-buffer file))
                  result kill)
             (unless buffer
-              (setq buffer (find-file-noselect file))
+              (setq buffer (find-file-noselect file t))
               (setq kill t))
 
             (with-current-buffer buffer
@@ -896,6 +915,7 @@ sources or nil if no class is found."
                                   symbol-start (group ,class) symbol-end
                                   ,@csense-class-base-regexp))
                        nil t)
+
                   ;; position the cursor for csense-cs-get-members
                   ;; FIXME: it should be done some other way, it's clumsy
                   (with-syntax-table 
@@ -915,7 +935,13 @@ sources or nil if no class is found."
                                        'constructors 
                                        (plist-get member-info 'constructors)))
                     (if base
-                        (setq result (plist-put result 'base base)))))))
+                        (setq result (plist-put result 'base base)))
+
+                    (puthash class (plist-put result 
+                                              'timestamp (float-time))
+                             csense-cs-type-hash)
+
+                    (csense-debug "Class %s is found in sources." class)))))
 
             (if kill
                 (kill-buffer buffer))
@@ -1091,6 +1117,12 @@ Cursor must be before the beginning paren of the invocation."
             (scan-error (- 0 count))))
       (scan-error nil))))
            
+
+(defun csense-cs-get-file-modification-time (file)
+  "Return the modification time of FILE in seconds since the
+epoch."
+  (float-time (sixth (file-attributes file))))
+
 
 (provide 'csense-cs)
 ;;; csense-cs.el ends here
