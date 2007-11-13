@@ -87,7 +87,10 @@ namespace netsense
 					Console.WriteLine("(name \"" +
 					                  // remove generic tag from end of class name if any
 					                  Regex.Replace(t.FullName, "`[0-9]+", "")
-					                  + "\"");
+					                  + "\" " +
+					                  "shortname \"" + 
+					                  // remove generic tag from end of class name if any
+					                  Regex.Replace(t.Name, "`[0-9]+", "") + "\"");
 					
 					if (t.BaseType != null)
 						Console.WriteLine("\tbase \"" + t.BaseType.FullName + "\"");
@@ -99,7 +102,7 @@ namespace netsense
 					Console.WriteLine("\tmembers (");
 
 					List<ConstructorInfo> constructors = new List<ConstructorInfo>();
-					
+
 					foreach (MemberInfo member in t.GetMembers(BindingFlags.Public |
 					                                           BindingFlags.Static |
 					                                           BindingFlags.NonPublic |

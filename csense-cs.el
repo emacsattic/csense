@@ -212,6 +212,13 @@ The plists can have have the following properties:
 
     The name of the item.
 
+  - shortname
+
+    If it's a class then it's the class name without namespace
+    prefix. This property is present only in classes retrieved
+    from assemblies, because namespaces are not yet handled for
+    source classes.
+
   - type
 
     The type of the item. For functions this is the return value.
@@ -860,20 +867,15 @@ assemblies or nil if no class is found."
                  'members (mapcar (lambda (member)
                                     (plist-put member 'class class-info))
                                   (plist-get class-info 'members)))
-      (let ((class-name 
-             ;; remove namespace from classname
-             (replace-regexp-in-string
-              "\\([a-zA-z]+\\.\\)+\\([a-zA-Z]\\)" "\\2"
-              (plist-get class-info 'name))))
-        ;; a link to the parent class is put into every constructor and
-        ;; they are named after the class
-        (plist-put class-info
-                   'constructors 
-                   (mapcar (lambda (constructor)
-                             (plist-put
-                              (plist-put constructor 'class class-info)
-                              'name class-name))
-                           (plist-get class-info 'constructors)))))))
+      ;; a link to the parent class is put into every constructor and
+      ;; they are named after the class
+      (plist-put class-info
+                 'constructors 
+                 (mapcar (lambda (constructor)
+                           (plist-put
+                            (plist-put constructor 'class class-info)
+                            'name (plist-get class-info 'shortname)))
+                         (plist-get class-info 'constructors))))))
 
 
 (defun csense-cs-get-class-information-from-source (class)
