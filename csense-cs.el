@@ -395,10 +395,13 @@ The list has the same format as the return value of
             (plist-get (csense-cs-get-members
                         (plist-get func-info 'class-name))
                        'members)
-            (if (plist-get func-info 'base)
-                (csense-get-members-for-symbol
-                 (csense-get-class-information
-                  (plist-get func-info 'base))))))))))
+            (remove-if (lambda (member)
+                  (eq (plist-get member 'access) 'private))
+
+                       (if (plist-get func-info 'base)
+                           (csense-get-members-for-symbol
+                            (csense-get-class-information
+                             (plist-get func-info 'base)))))))))))
 
 
 (defun csense-cs-get-local-variables (func-info)
@@ -771,11 +774,17 @@ The return value is a list of plists."
     (csense-merge-inherited-members 
      (remove-if (lambda (member)
                   (and (eq (plist-get class-info 'source-context) 'class)
-                       (not (plist-get member 'static))))
+                       (or (not (plist-get member 'static))
+                           (not (eq (plist-get member 'access) 'public)))))
                 (plist-get class-info 'members))
-     (if (plist-get class-info 'base)
-         (csense-get-members-for-symbol
-          (csense-get-class-information (plist-get class-info 'base)))))))
+
+     (remove-if (lambda (member)
+                  (eq (plist-get member 'access) 'private))
+
+                (if (plist-get class-info 'base)
+                    (csense-get-members-for-symbol
+                     (csense-get-class-information 
+                      (plist-get class-info 'base))))))))
 
 
 (defun csense-merge-inherited-members (members inherited-members)
