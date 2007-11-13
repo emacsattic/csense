@@ -80,6 +80,9 @@ namespace netsense
 				{
 					//if (t.FullName != "System.String")
 					//	continue;
+
+					if (!t.IsVisible)
+						continue;
 					
 					Console.WriteLine("(name \"" +
 					                  // remove generic tag from end of class name if any
@@ -219,7 +222,7 @@ namespace netsense
 					{
 						if (constructor.IsPrivate || constructor.IsAssembly)
 							continue;
-							
+						
 						string signature = getSignature(constructor.GetParameters());
 						signature = "M:" + t.FullName + ".#ctor" +
 							(signature == "" ? "" : "(" + signature + ")");
