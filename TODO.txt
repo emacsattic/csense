@@ -11,8 +11,6 @@ For release
 
 - skip stuff in comments and strings
 
-- honor protection levels 
-
 - []
 
 - < < > >
