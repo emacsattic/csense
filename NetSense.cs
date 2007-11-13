@@ -88,7 +88,7 @@ namespace netsense
 					                  // remove generic tag from end of class name if any
 					                  Regex.Replace(t.FullName, "`[0-9]+", "")
 					                  + "\" " +
-					                  "shortname \"" + 
+					                  "shortname \"" +
 					                  // remove generic tag from end of class name if any
 					                  Regex.Replace(t.Name, "`[0-9]+", "") + "\"");
 					
@@ -166,6 +166,12 @@ namespace netsense
 									signature = "P:" + t.FullName + "." + member.Name +
 										(signature == "" ? "" : "(" + signature + ")");
 									docs.TryGetValue(signature, out doc);
+									
+									isstatic =
+										(property.GetGetMethod() != null &&
+										 property.GetGetMethod().IsStatic) ||
+										(property.GetSetMethod() != null &&
+										 property.GetSetMethod().IsStatic);
 									
 									access = "public";
 									
