@@ -425,15 +425,13 @@ The list has the same format as the return value of
     (if func-info
         (csense-cs-merge-local-symbols
          (csense-cs-get-local-variables func-info)
-         (save-excursion
-           (goto-char (plist-get func-info 'class-begin))
-           (csense-merge-inherited-members 
-            (plist-get (csense-cs-get-members
-                        (plist-get func-info 'class-name))
-                       'members)
-            (if (plist-get func-info 'base)
-                (csense-cs-get-accessible-inherited-members
-                 (plist-get func-info 'base)))))))))
+         (csense-merge-inherited-members 
+          (plist-get (csense-get-class-information
+                      (plist-get func-info 'class-name))
+                     'members)
+          (if (plist-get func-info 'base)
+              (csense-cs-get-accessible-inherited-members
+               (plist-get func-info 'base)))))))))
 
 
 (defun csense-cs-get-local-variables (func-info)
