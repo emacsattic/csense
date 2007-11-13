@@ -387,21 +387,14 @@ The list has the same format as the return value of
         (csense-cs-merge-local-symbols
          (csense-cs-get-local-variables func-info)
          (save-excursion
-           ;; this should be done via
-           ;; `csense-get-members-for-symbol', instead
-           ;; of duplicating the code here
            (goto-char (plist-get func-info 'class-begin))
            (csense-merge-inherited-members 
             (plist-get (csense-cs-get-members
                         (plist-get func-info 'class-name))
                        'members)
-            (remove-if (lambda (member)
-                  (eq (plist-get member 'access) 'private))
-
-                       (if (plist-get func-info 'base)
-                           (csense-get-members-for-symbol
-                            (csense-get-class-information
-                             (plist-get func-info 'base)))))))))))
+            (if (plist-get func-info 'base)
+                (csense-cs-get-accessible-inherited-members
+                 (plist-get func-info 'base)))))))))
 
 
 (defun csense-cs-get-local-variables (func-info)
@@ -778,13 +771,18 @@ The return value is a list of plists."
                            (not (eq (plist-get member 'access) 'public)))))
                 (plist-get class-info 'members))
 
-     (remove-if (lambda (member)
-                  (eq (plist-get member 'access) 'private))
+     (if (plist-get class-info 'base)
+         (csense-cs-get-accessible-inherited-members
+          (plist-get class-info 'base))))))
 
-                (if (plist-get class-info 'base)
-                    (csense-get-members-for-symbol
-                     (csense-get-class-information 
-                      (plist-get class-info 'base))))))))
+
+(defun csense-cs-get-accessible-inherited-members (class)
+  "Get members for CLASS which are accessible for descendant
+classes."
+  (remove-if (lambda (member)
+               (eq (plist-get member 'access) 'private))
+             (csense-get-members-for-symbol
+              (csense-get-class-information class))))
 
 
 (defun csense-merge-inherited-members (members inherited-members)
