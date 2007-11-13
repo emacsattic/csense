@@ -72,6 +72,6 @@ Someday
 
 - extract thrown exception documentation from assemblies
 
-- constructors without any modifier are not matched (they are private
+- constructors without any modifier are not handled (they are private
   and private constrcutors are not that useful, so it may not be a big
   deal)
