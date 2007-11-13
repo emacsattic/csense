@@ -54,7 +54,9 @@
 ;;; User configuration
 
 (defvar csense-cs-source-files nil
-  "List of source files of the project with full path.")
+  "List of source files of the project with full path.
+
+You can use `csense-get-files-recursive' to collect the files recursively.")
 
 
 (defvar csense-cs-assemblies nil

@@ -36,6 +36,7 @@
 ;;; Code:
 
 (require 'etags)
+(require 'cl)
 
 ;;; User configuration
 
@@ -835,6 +836,22 @@ can be selected by the user."
       (message (concat "CSense debug: "
                        (format message args)))))
 
+
+(defun csense-get-files-recursive (directory regexp)
+  "Return all files from DIRECTORY and its subdirectories which
+match regexp."
+  (delete-if-not (lambda (file)
+                   (string-match regexp file))
+
+                 (mapcan (lambda (file)
+                           (if (and (file-readable-p file)
+                                    (file-directory-p file))
+                               (csense-get-files-recursive file regexp)
+                             (list file)))
+
+                         (delete-if (lambda (file)
+                                      (string-match "/[.]+$" file))
+                                    (directory-files directory t)))))
 
 (provide 'csense)
 ;;; csense.el ends here
