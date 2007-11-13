@@ -165,6 +165,9 @@ The plist should have the following properties:
   "The original keybindings are saved here when CSense rebinds
   some keys temporarily.")
 
+(defvar csense-debug nil
+  "Whether to show debug messages.")
+
 
 (defun csense-setup ()
   "Setup Code Sense for the current buffer."
@@ -824,6 +827,13 @@ can be selected by the user."
    (1- (if (= csense-multi-tooltip-current 0)
            (length csense-multi-tooltip-texts)
          csense-multi-tooltip-current))))
+
+
+(defun csense-debug (message &optional args)
+  "Show MESSAGE if `csense-debug' is non-nil."
+  (if csense-debug
+      (message (concat "CSense debug: "
+                       (format message args)))))
 
 
 (provide 'csense)
